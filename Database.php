@@ -66,13 +66,20 @@ class Database extends Medoo {
 		// We instantiate Medoo
 		$pdoStatement=$this->query("CREATE TABLE IF NOT EXISTS ".$tablePrefix."users (
 			id INTEGER PRIMARY KEY, 
-			username VARCHAR( 50 ) NOT NULL );");
-			print_r($pdoStatement->errorInfo());
-		$this->debug()->insert("users",[
-	[
-		'username' => 'stko'
-	]
-]);
+			username VARCHAR( 50 ) NOT NULL,
+			firstname TEXT, 
+			lastname TEXT,
+			state INTEGER );");
+		print_r($pdoStatement->errorInfo());
+		$pdoStatement=$this->insert("users",[
+			[
+				'username' => 'foo',
+				'firstname' => 'Alice',
+				'lastname' => 'Smith',
+				'state' => 1
+			]
+		]);
+		print_r($pdoStatement->errorInfo());
 
 		$account_id = $this->id();
 		echo("\n$account_id\n");
