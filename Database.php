@@ -14,7 +14,6 @@ class Database extends Medoo {
 
 	/**
 	* Return an instance of the Database
-	* @param String $dbName Database Name
 	* @return Database The Database instance
 	*/
 	public static function instance() {
@@ -87,7 +86,3 @@ class Database extends Medoo {
 	
 }
 ?>
-			firstname TEXT, 
-			lastname TEXT,
-			state INTEGER
-
