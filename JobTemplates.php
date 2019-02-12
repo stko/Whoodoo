@@ -5,7 +5,7 @@
 class JobTemplates {
 	private static $instance;
 
-	private $tempates=array();
+	private $templates=array();
 
 	/**
 	* Return an instance of the JobTemplates
@@ -25,16 +25,18 @@ class JobTemplates {
 		$iterator = new RecursiveIteratorIterator($directory);
 		$filenameArray = new RegexIterator($iterator, '/^.+\.txt$/i', RecursiveRegexIterator::GET_MATCH);
 		foreach( $filenameArray as $filename){
-			echo("filename: ".$filename[0]."\n");
-			$fileContent=file_get_contents($filename[0]);
+			$filename=$filename[0];
+			echo("filename: ".$filename."\n");
+			$fileContent=file_get_contents($filename);
 			preg_match_all('/<code.*?>(.*?)<\/code>/s', $fileContent, $matches);
 			#var_dump($matches);
+			$filename=preg_replace(array('/\./','/.txt/'),array('/',''),$filename);
+			echo("filename: ".$filename."\n");
 			if (isset($matches[1])){
 				$jsonString=implode($matches[1],"");
-				echo ($jsonString);
 				$json=json_decode($jsonString);
-				var_dump($json);
-				echo(json_encode($json));
+				echo($json->title."\n");
+				$templates[$filename]=$json;
 			}
 		}
 	}
