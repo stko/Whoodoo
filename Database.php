@@ -78,6 +78,21 @@ class Database extends Medoo {
 				'state' => 1
 			]
 		]);
+		$pdoStatement=$this->query("CREATE TABLE IF NOT EXISTS ".$tablePrefix."workzone (
+			id INTEGER PRIMARY KEY, 
+			name VARCHAR( 200 ) NOT NULL );");
+		print_r($pdoStatement->errorInfo());
+		$pdoStatement=$this->insert("workzone",[
+			[
+				'name' => 'customer.project'
+			],
+			[
+				'name' => 'customer.project.build'
+			],
+			[
+				'name' => 'customer.project.build.event'
+			]
+		]);
 		print_r($pdoStatement->errorInfo());
 
 		$account_id = $this->id();
