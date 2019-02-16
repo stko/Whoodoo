@@ -24,8 +24,11 @@
   </ul>
   <div id="tabs-1">
 <input list="workzoneList" id="workzoneInput" autocomplete=off>
-
 <datalist id="workzoneList">
+</datalist>
+<br/>
+<input list="jobList" id="jobInput" autocomplete=off>
+<datalist id="jobList">
 </datalist>
 
 <div id="vueapp">
@@ -66,57 +69,31 @@ new Vue({
 })
 
 $( document ).ready( function(){
-
-    // Add a keyup event listener to our input element
-    var workzoneInput = document.getElementById('workzoneInput');
-    var workzoneList = document.getElementById('workzoneList');
-    workzoneInput.addEventListener("keyup", function(event){listLookup(event,workzoneList,"/WorkZones.php?query=")});
-
-    // create one global XHR object 
-    // so we can abort old requests when a new one is make
-    window.listLookupXHR = new XMLHttpRequest();
+    // Add keyup event listeners to our input autocomplete elements
+	$('#workzoneInput').on("keyup", function(event){listLookup(event,document.getElementById('workzoneList'),"/WorkZones.php?query=")});
+	$('#jobInput').on("keyup", function(event){listLookup(event,document.getElementById('jobList'),"/JobTemplates.php?action=1&query=")});
 });
 
 // Autocomplete for form
 function listLookup(event,list,url) {
-
     // retireve the input element
     var input = event.target;
-
-    // retrieve the datalist element
-
     // minimum number of characters before we start to generate suggestions
     var min_characters = 3;
-
     if (input.value.length < min_characters ) { 
         return;
     } else { 
-
-        // abort any pending requests
-        window.listLookupXHR.abort();
-
-        window.listLookupXHR.onreadystatechange = function() {
-            if (this.readyState == 4 && this.status == 200) {
-
-                // We're expecting a json response so we convert it to an object
-                 var response = JSON.parse( this.responseText ); 
-
+        $.getJSON( url + input.value, function(response) {
                 // clear any previously loaded options in the datalist
                 list.innerHTML = "";
-
                 response.forEach(function(item) {
                     // Create a new <option> element.
                     var option = document.createElement('option');
                     option.value = item;
-
                     // attach the option to the datalist element
                     list.appendChild(option);
                 });
-            }
-        };
-
-        window.listLookupXHR.open("GET", url + input.value, true);
-        window.listLookupXHR.send()
+        });
     }
 }
 

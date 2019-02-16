@@ -36,13 +36,15 @@ class JobTemplates {
 				$jsonString=implode($matches[1],"");
 				$json=json_decode($jsonString);
 				#echo($json->title."\n");
-				$templates[$filename]=$json;
+				$this->templates[$filename]=$json;
 			}
 		}
 	}
 	
-	public function get_job_Names(){
-		return array_keys($templates);
+	public function get_Job_Names(){
+		$arr=array_keys($this->templates);
+		sort($arr);
+		return $arr;
 	}
 	
 }
@@ -50,13 +52,14 @@ class JobTemplates {
 
 if (!debug_backtrace()) {
     // do useful stuff
-}
 
-$jt=JobTemplates::Instance(Config::jobPath);
-$query = $_GET['query'];
-if ($query) {
-	if ($query=="1"){
-		echo json_encode(array_values($jt.get_Job_Names()));
+	$jt=JobTemplates::Instance(Config::jobPath);
+	$action = $_GET['action'];
+	if ($action) {
+		if ($action=="1"){
+			echo json_encode(array_values($jt->get_Job_Names()));
+		}
 	}
 }
+
 ?>
