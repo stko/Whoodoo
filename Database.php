@@ -69,7 +69,6 @@ class Database extends Medoo {
 			firstname TEXT, 
 			lastname TEXT,
 			state INTEGER );");
-		print_r($pdoStatement->errorInfo());
 		$pdoStatement=$this->insert("users",[
 			[
 				'username' => 'foo',
@@ -81,7 +80,6 @@ class Database extends Medoo {
 		$pdoStatement=$this->query("CREATE TABLE IF NOT EXISTS ".$tablePrefix."workzone (
 			id INTEGER PRIMARY KEY, 
 			name VARCHAR( 200 ) NOT NULL );");
-		print_r($pdoStatement->errorInfo());
 		$pdoStatement=$this->insert("workzone",[
 			[
 				'name' => 'customer.project'
@@ -93,10 +91,7 @@ class Database extends Medoo {
 				'name' => 'customer.project.build.event'
 			]
 		]);
-		print_r($pdoStatement->errorInfo());
-
 		$account_id = $this->id();
-		echo("\n$account_id\n");
 	}
 	
 }

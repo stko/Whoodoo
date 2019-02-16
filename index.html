@@ -18,14 +18,14 @@
  
 <div id="tabs">
   <ul>
-    <li><a href="#tabs-1">Nunc tincidunt</a></li>
+    <li><a href="#tabs-1">Overwiew</a></li>
     <li><a href="#tabs-2">Proin dolor</a></li>
     <li><a href="#tabs-3">Aenean lacinia</a></li>
   </ul>
   <div id="tabs-1">
-<input list="huge_list" id="name_input" autocomplete=off>
+<input list="workzoneList" id="workzoneInput" autocomplete=off>
 
-<datalist id="huge_list">
+<datalist id="workzoneList">
 </datalist>
 
 <div id="vueapp">
@@ -65,44 +65,44 @@ new Vue({
   }
 })
 
-window.addEventListener("load", function(){
+$( document ).ready( function(){
 
     // Add a keyup event listener to our input element
-    var name_input = document.getElementById('name_input');
-    name_input.addEventListener("keyup", function(event){hinter(event)});
+    var workzoneInput = document.getElementById('workzoneInput');
+    var workzoneList = document.getElementById('workzoneList');
+    workzoneInput.addEventListener("keyup", function(event){listLookup(event,workzoneList,"/WorkZones.php?query=")});
 
     // create one global XHR object 
     // so we can abort old requests when a new one is make
-    window.hinterXHR = new XMLHttpRequest();
+    window.listLookupXHR = new XMLHttpRequest();
 });
 
 // Autocomplete for form
-function hinter(event) {
+function listLookup(event,list,url) {
 
     // retireve the input element
     var input = event.target;
 
     // retrieve the datalist element
-    var huge_list = document.getElementById('huge_list');
 
     // minimum number of characters before we start to generate suggestions
-    var min_characters = 0;
+    var min_characters = 3;
 
     if (input.value.length < min_characters ) { 
         return;
     } else { 
 
         // abort any pending requests
-        window.hinterXHR.abort();
+        window.listLookupXHR.abort();
 
-        window.hinterXHR.onreadystatechange = function() {
+        window.listLookupXHR.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
 
                 // We're expecting a json response so we convert it to an object
-                var response = JSON.parse( this.responseText ); 
+                 var response = JSON.parse( this.responseText ); 
 
                 // clear any previously loaded options in the datalist
-                huge_list.innerHTML = "";
+                list.innerHTML = "";
 
                 response.forEach(function(item) {
                     // Create a new <option> element.
@@ -110,13 +110,13 @@ function hinter(event) {
                     option.value = item;
 
                     // attach the option to the datalist element
-                    huge_list.appendChild(option);
+                    list.appendChild(option);
                 });
             }
         };
 
-        window.hinterXHR.open("GET", "/query.php?query=" + input.value, true);
-        window.hinterXHR.send()
+        window.listLookupXHR.open("GET", url + input.value, true);
+        window.listLookupXHR.send()
     }
 }
 

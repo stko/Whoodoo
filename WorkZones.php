@@ -37,7 +37,7 @@ $query = $_GET['query'];
 
 // These values may have been gotten from a database.
 // We'll use a simple array just to show this example.
-$values = ['Neo',
+$values2 = ['Neo',
             'Ibiyemi',
             'Olayinka',
             'Jonathan',
@@ -56,14 +56,17 @@ $values = $db->select("workzone", [
 ], [
         #"user_id[>]" => 100
 ]);
+$result=array();
 if ($query) {
     foreach ($values as $key => $value) {
-        if (stripos($value, $query) === false) {
-            unset($values[$key]);
+        if (stripos($value["name"], $query) !== false) {
+            if (! in_array($value["name"],$result)){
+				$result[] = $value["name"];
+            }
         }
     }
 }
 
-echo json_encode(array_values($values));
+echo json_encode(array_values($result));
 }
 ?>

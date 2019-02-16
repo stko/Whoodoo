@@ -1,6 +1,7 @@
 <?php
 #namespace JobTemplates;
 
+require_once("config.php");
 
 class JobTemplates {
 	private static $instance;
@@ -26,19 +27,22 @@ class JobTemplates {
 		$filenameArray = new RegexIterator($iterator, '/^.+\.txt$/i', RecursiveRegexIterator::GET_MATCH);
 		foreach( $filenameArray as $filename){
 			$filename=$filename[0];
-			echo("filename: ".$filename."\n");
 			$fileContent=file_get_contents($filename);
 			preg_match_all('/<code.*?>(.*?)<\/code>/s', $fileContent, $matches);
 			#var_dump($matches);
-			$filename=preg_replace(array('/\./','/.txt/'),array('/',''),$filename);
-			echo("filename: ".$filename."\n");
+			$filename=preg_replace(array('/\//','/.txt/'),array('.',''),$filename);
+			error_log("filename: ".$filename);
 			if (isset($matches[1])){
 				$jsonString=implode($matches[1],"");
 				$json=json_decode($jsonString);
-				echo($json->title."\n");
+				#echo($json->title."\n");
 				$templates[$filename]=$json;
 			}
 		}
+	}
+	
+	public function get_job_Names(){
+		return array_keys($templates);
 	}
 	
 }
@@ -48,6 +52,11 @@ if (!debug_backtrace()) {
     // do useful stuff
 }
 
-$jt=JobTemplates::Instance($argv[1]);
-
+$jt=JobTemplates::Instance(Config::jobPath);
+$query = $_GET['query'];
+if ($query) {
+	if ($query=="1"){
+		echo json_encode(array_values($jt.get_Job_Names()));
+	}
+}
 ?>
