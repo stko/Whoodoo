@@ -74,7 +74,13 @@ $( document ).ready( function(){
     // Add keyup event listeners to our input autocomplete elements
 	$('#workzoneInput').on("keyup", function(event){listLookup(event,document.getElementById('workzoneList'),"WorkZones.php",{action:1})});
 	$('#jobInput').on("keyup", function(event){listLookup(event,document.getElementById('jobList'),"JobTemplates.php",{action:1})});
+	
+	$( "#createFlowButton" ).click(function() {
+		postIt( "JobsHandler.php", {action:2 ,wzName: $('#workzoneInput').val(), jobName:$('#jobInput').val()} ,function(response) {
+		});
+	});
 });
+
 
 // Autocomplete for form
 function listLookup(event,list,url,data) {

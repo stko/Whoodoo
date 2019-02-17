@@ -40,6 +40,18 @@ class JobTemplates {
 		}
 	}
 	
+	private function getFullPath($jobName,$dependencyName){
+		$jobElements=explode(".",$jobName);
+		$dependencyElements=explode(".",$dependencyName);
+		// not finished, just for basic functionality
+		if (count($dependencyElements)==1){ // name without any path
+			return implode(".",array_slice($jobElements,0,count($jobElements)-1)).".".$dependencyName;
+		}else{ //just do nothing and return the original
+			return $dependencyName;
+		}
+		
+	}
+	
 	public function get_Job_Names(){
 		$arr=array_keys($this->templates);
 		sort($arr);
@@ -55,6 +67,30 @@ class JobTemplates {
 		if ($action) {
 			if ($action=="1"){
 				die('{"errorcode":0, "data": '.json_encode(array_values($this->get_Job_Names())).'}');
+			}
+		}
+	}
+	
+	public function getAllDependencies($origin){ //must be called with a fully qualified job name, obiously
+		$jobList=array();
+		$this->fillDependencies($jobList,$origin);
+		return $jobList;
+	}
+	
+	private function fillDependencies(&$arr, $job){
+		if (!array_key_exists($job,$this->templates)){
+			error_log("$job not found");
+			return false;
+		}
+		error_log("Working on $job");
+		if (!array_key_exists($job,$arr)){
+			$arr[$job]=array();
+			foreach ($this->templates[$job]->required as $required){
+				error_log("requires $required");
+				$required=$this->getFullPath($job,$required);
+				$arr[$job][$required]=1; // this avoids doublets
+				$this->fillDependencies($arr,$required);
+				
 			}
 		}
 	}

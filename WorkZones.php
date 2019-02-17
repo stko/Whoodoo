@@ -25,7 +25,7 @@ class WorkZones  {
 	}
 	
 	public function getWorkzoneID($wz) {
-		$values = $this->$db->select("workzone", [
+		$values = $this->db->select("workzone", [
 			"id",
 			"name"
 			], [
@@ -55,6 +55,18 @@ class WorkZones  {
 			sort($result);
 		}
 		return $result;
+	}
+	
+	public function createWorkZone($wz){
+		$id=$this->getWorkzoneID($wz);
+		if ($id===false){
+			$this->db->insert("workzone", [
+				"name" => $wz
+			]);
+			return $this->db->id();
+		}else{
+			return $id;
+		}
 	}
 
 	public function doRequest($post){

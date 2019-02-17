@@ -9,7 +9,7 @@ the overall bracket:
 The required preccessor jobs
 <code json foo.txt>
 "required"  : [
-	"../report"
+	"jobs.report"
 ],
 </code>
 The Title
