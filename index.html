@@ -72,12 +72,12 @@ new Vue({
 
 $( document ).ready( function(){
     // Add keyup event listeners to our input autocomplete elements
-	$('#workzoneInput').on("keyup", function(event){listLookup(event,document.getElementById('workzoneList'),"WorkZones.php?query=")});
-	$('#jobInput').on("keyup", function(event){listLookup(event,document.getElementById('jobList'),"JobTemplates.php?action=1&query=")});
+	$('#workzoneInput').on("keyup", function(event){listLookup(event,document.getElementById('workzoneList'),"WorkZones.php",{action:1})});
+	$('#jobInput').on("keyup", function(event){listLookup(event,document.getElementById('jobList'),"JobTemplates.php",{action:1})});
 });
 
 // Autocomplete for form
-function listLookup(event,list,url) {
+function listLookup(event,list,url,data) {
 	enableCreateButton();
     // retireve the input element
     var input = event.target;
@@ -86,7 +86,8 @@ function listLookup(event,list,url) {
     if (input.value.length < min_characters ) { 
         return;
     } else { 
-        $.getJSON( url + input.value, function(response) {
+		data.query=input.value;
+        postIt( url, data ,function(response) {
                 // clear any previously loaded options in the datalist
                 list.innerHTML = "";
                 if (response.data){
@@ -135,9 +136,15 @@ $.ajax({
         type: 'post',
         url: url,
         data: data,
-        dataType: 'json',
-        success:success
-        });
+        dataType: 'json'
+        }).done(function( data ) {
+		if (data.errorcode!==0){
+			alert(data.error);
+			return;
+		}
+
+    success(data);
+  });
 }
 
 </script>

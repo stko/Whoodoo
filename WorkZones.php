@@ -56,14 +56,17 @@ class WorkZones  {
 		}
 		return $result;
 	}
+
+	public function doRequest($post){
+		$query = $post['query'];
+		die('{"errorcode":0, "data": '.json_encode(array_values($this->get_WorkZones($query))).'}');
+	}
+
 }
 if (!debug_backtrace()) {
     // do useful stuff
-    
-$wz=WorkZones::Instance();    
 
-$query = $_GET['query'];
-
-die('{"errocode":0, "data": '.json_encode(array_values($wz->get_WorkZones($query))).'}');
+	$wz=WorkZones::Instance();    
+	$wz->doRequest($_POST);
 }
 ?>

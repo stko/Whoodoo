@@ -46,6 +46,19 @@ class JobTemplates {
 		return $arr;
 	}
 	
+	public function jobExists($job){
+		return isset($this->templates[$job]);
+	}
+
+	public function doRequest($post){
+		$action = $post['action'];
+		if ($action) {
+			if ($action=="1"){
+				die('{"errorcode":0, "data": '.json_encode(array_values($this->get_Job_Names())).'}');
+			}
+		}
+	}
+
 }
 
 
@@ -53,12 +66,7 @@ if (!debug_backtrace()) {
     // do useful stuff
 
 	$jt=JobTemplates::Instance(Config::jobPath);
-	$action = $_GET['action'];
-	if ($action) {
-		if ($action=="1"){
-			die('{"errocode":0, "data": '.json_encode(array_values($jt->get_Job_Names())).'}');
-		}
-	}
+	$jt->doRequest($_POST);
 }
 
 ?>
