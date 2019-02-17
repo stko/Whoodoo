@@ -1,6 +1,4 @@
 <?php
-namespace Database;
-
 require_once  'Medoo.php';
 
 use Medoo\Medoo;

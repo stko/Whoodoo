@@ -1,9 +1,8 @@
 <?php
-namespace WorkZones;
+
 
 require_once  'Database.php';
 
-use Database\Database;
 
 class WorkZones  {
 	private static $instance;
@@ -25,12 +24,21 @@ class WorkZones  {
 		$this->db=Database::Instance();
 	}
 	
-	public function getdb() {
-		return $this->db;
+	public function getWorkzoneID($wz) {
+		$values = $this->$db->select("workzone", [
+			"id",
+			"name"
+			], [
+			"name[=]" => $wz
+		]);
+		if (empty($values)){
+			return False;
+		}
+		return $values[0]["id"];
 	}
 	
-	public get_WorkZones($query){
-		$values = $this->$db->select("workzone", [
+	public function get_WorkZones($query){
+		$values = $this->db->select("workzone", [
 			"name"
 			], [
 			#"user_id[>]" => 100
@@ -54,7 +62,8 @@ if (!debug_backtrace()) {
     
 $wz=WorkZones::Instance();    
 
+$query = $_GET['query'];
 
-echo json_encode(array_values($wz->get_WorkZones($query)));
+die('{"errocode":0, "data": '.json_encode(array_values($wz->get_WorkZones($query))).'}');
 }
 ?>

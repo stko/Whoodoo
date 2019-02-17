@@ -23,14 +23,16 @@
     <li><a href="#tabs-3">Aenean lacinia</a></li>
   </ul>
   <div id="tabs-1">
+<label for="workzoneList">Work Zone</label>
 <input list="workzoneList" id="workzoneInput" autocomplete=off>
 <datalist id="workzoneList">
 </datalist>
 <br/>
+<label for="jobInput">New Job to start</label>
 <input list="jobList" id="jobInput" autocomplete=off>
 <datalist id="jobList">
 </datalist>
-
+<button type="button" id="createFlowButton" disabled="disabled">Create new Flow</button>
 <div id="vueapp">
   URL: <input type="text" v-model.trim="url" v-on:keyup.enter="xhr">
   <button v-on:click="xhr">XHR</button><br>
@@ -70,12 +72,13 @@ new Vue({
 
 $( document ).ready( function(){
     // Add keyup event listeners to our input autocomplete elements
-	$('#workzoneInput').on("keyup", function(event){listLookup(event,document.getElementById('workzoneList'),"/WorkZones.php?query=")});
-	$('#jobInput').on("keyup", function(event){listLookup(event,document.getElementById('jobList'),"/JobTemplates.php?action=1&query=")});
+	$('#workzoneInput').on("keyup", function(event){listLookup(event,document.getElementById('workzoneList'),"WorkZones.php?query=")});
+	$('#jobInput').on("keyup", function(event){listLookup(event,document.getElementById('jobList'),"JobTemplates.php?action=1&query=")});
 });
 
 // Autocomplete for form
 function listLookup(event,list,url) {
+	enableCreateButton();
     // retireve the input element
     var input = event.target;
     // minimum number of characters before we start to generate suggestions
@@ -86,15 +89,55 @@ function listLookup(event,list,url) {
         $.getJSON( url + input.value, function(response) {
                 // clear any previously loaded options in the datalist
                 list.innerHTML = "";
-                response.forEach(function(item) {
-                    // Create a new <option> element.
-                    var option = document.createElement('option');
-                    option.value = item;
-                    // attach the option to the datalist element
-                    list.appendChild(option);
-                });
+                if (response.data){
+					response.data.forEach(function(item) {
+						// Create a new <option> element.
+						var option = document.createElement('option');
+						option.value = item;
+						// attach the option to the datalist element
+						list.appendChild(option);
+					});
+                }
         });
     }
+}
+
+function enableCreateButton(){
+	var wz=$('#workzoneInput').val();
+	if (wz.length<3){
+		$("#createFlowButton").prop("disabled",true);
+		return;
+	}
+	var job=$('#jobInput').val();
+	if (job.length<3){
+		$("#createFlowButton").prop("disabled",true);
+		return;
+	}
+	postIt( "JobsHandler.php", {action:1 ,wzName: wz, jobName:job} ,function(response) {
+		console.log(response);
+		console.log(response.errorcode);
+		console.log(response.value);
+		if (response.errorcode!==0){
+			console.log(response.errorcode);
+			return;
+		}
+		if (response.value){
+			$("#createFlowButton").prop("disabled",false);
+		}else{
+			$("#createFlowButton").prop("disabled",true);
+		}
+	});
+}
+
+
+function postIt(url,data,success){
+$.ajax({
+        type: 'post',
+        url: url,
+        data: data,
+        dataType: 'json',
+        success:success
+        });
 }
 
 </script>

@@ -1,7 +1,6 @@
 <?php
-#namespace JobTemplates;
 
-require_once("config.php");
+require_once("Config.php");
 
 class JobTemplates {
 	private static $instance;
@@ -57,7 +56,7 @@ if (!debug_backtrace()) {
 	$action = $_GET['action'];
 	if ($action) {
 		if ($action=="1"){
-			echo json_encode(array_values($jt->get_Job_Names()));
+			die('{"errocode":0, "data": '.json_encode(array_values($jt->get_Job_Names())).'}');
 		}
 	}
 }
