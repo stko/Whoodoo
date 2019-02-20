@@ -83,6 +83,28 @@ class JobsHandler  {
 	}
 
 	
+	public function createOrModifyEdge($wzID,$fromJobID,$toJobID,$state){
+		$values = $this->db->update("edgelist", [
+				"state" => $state
+			], [
+			"workzoneid[=]" => $wzID,
+			"fromjobid[=]" => $fromJobID,
+			"toJobID[=]" => $toJobID
+		]);
+		if ($values->rowCount()==0){
+			$this->db->insert("edgelist", [
+				"workzoneid" => $wzID,
+				"fromjobid" => $fromJobID,
+				"tojobid" => $toJobID,
+				"state" => $state
+			]);
+			return true;
+		}else{
+			return false;
+		}
+	}
+
+	
 	public function doRequest($post){
 		$action = $post['action'];
 		if ($action) {
@@ -92,28 +114,36 @@ class JobsHandler  {
 				die('{"errorcode":1, "error": "Variable Error"}');
 			}
 			if (!(preg_match("/^(\w+\.)+\w+$/",$wzName)===1)){
-				die('{"errorcode":0, "value": false, "error": "Work Zone Invalid syntax"}');
+				die('{"errorcode":0, "data": false, "error": "Work Zone Invalid syntax"}');
 			}
 			if (!$this->jt->jobExists($jobName)){
-				die('{"errorcode":0, "value": false, "error": "Job not exists"}');
+				die('{"errorcode":0, "data": false, "error": "Job not exists"}');
 			}
 			if ($action==1){ //ok to create?
-					die('{"errorcode":0, "value": true}');
+					die('{"errorcode":0, "data": true}');
 			}
 			if ($action==2){ //create
 					error_log("Create...");
 					$wzID=$this->wz->createWorkZone($wzName);
 					error_log("Created id: $wzID");
 					$toDo=$this->jt->getAllDependencies($jobName);
+					ob_start();
+					var_dump($toDo);
+					$result = ob_get_clean();
+					error_log($result);
 					$jobIDs=array();
-					foreach ($toDo as $index){
-						$this->createJob($wzID,$index,"");
-						foreach ($toDo[$index] as $deps){
-							$this->createJob($wzID,$deps,"");
+					foreach ($toDo as $successorJobName => $childs){
+						$toJobID=$this->createJob($wzID,$successorJobName,"");
+						foreach ($childs  as $predecessorJobName =>$child){
+							$fromJobID=$this->createJob($wzID,$predecessorJobName,"");
 							// create the edges here
+							$this->createOrModifyEdge($wzID,$fromJobID,$toJobID,0);
 						}
 					}
-					die('{"errorcode":0, "value": true}');
+					die('{"errorcode":0, "data": { "workzoneid" :'.$wzID.', "workzonename": "'.$wzName.'" } }');
+			}
+			if ($action==3){ //request Work Zone overview
+					die('{"errorcode":0, "data": true}');
 			}
 		}
 	}

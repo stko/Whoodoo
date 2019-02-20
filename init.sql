@@ -25,8 +25,9 @@ CREATE TABLE whoodoo_joblist (
 			state INTEGER NOT NULL);
 CREATE TABLE whoodoo_edgelist (
 			id INTEGER PRIMARY KEY, 
-			fromid INTEGER NOT NULL,
-			toid INTEGER NOT NULL,
+			workzoneid INTEGER NOT NULL,
+			fromjobid INTEGER NOT NULL,
+			tojobid INTEGER NOT NULL,
 			state INTEGER NOT NULL);
 			
 

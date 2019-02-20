@@ -33,42 +33,27 @@
 <datalist id="jobList">
 </datalist>
 <button type="button" id="createFlowButton" disabled="disabled">Create new Flow</button>
-<div id="vueapp">
-  URL: <input type="text" v-model.trim="url" v-on:keyup.enter="xhr">
-  <button v-on:click="xhr">XHR</button><br>
-  <pre>{{ info }}</pre>
+<div id="wzOverview">
+  <pre>{{ message }}</pre>
 </div>
 
 <script src="https://unpkg.com/vue@2.2.4/dist/vue.js"></script>
 <script>
 'use strict';
 
-new Vue({
-  el: '#vueapp',
-  data: {
-    url: "https://siongui.github.io/xemaauj9k5qn34x88m4h/sukhada.json",
-    info: ""
-  },
-  methods: {
-    xhr: function() {
-      this.info = "Requesting ...";
-      var rq = new XMLHttpRequest();
-
-      rq.onreadystatechange = function(vm) {
-        if (this.readyState === XMLHttpRequest.DONE) {
-          if (this.status === 200) {
-            vm.info = this.responseText;
-          } else {
-            vm.info = "Request Failed";
-          }
-        }
-      }.bind(rq, this);
-
-      rq.open("GET", this.url);
-      rq.send();
-    }
+var wzOverview= new Vue({
+  el: '#wzOverview',
+data: {
+    message: 'Hello Vue!'
   }
 })
+
+
+function gotoWorkZoneByName(wzName){
+	postIt( "JobsHandler.php", {action:3 ,wzName: wzName , jobName: ""} ,function(response) {
+	wzOverview.message=wzName;
+	});
+}
 
 $( document ).ready( function(){
     // Add keyup event listeners to our input autocomplete elements
@@ -77,6 +62,7 @@ $( document ).ready( function(){
 	
 	$( "#createFlowButton" ).click(function() {
 		postIt( "JobsHandler.php", {action:2 ,wzName: $('#workzoneInput').val(), jobName:$('#jobInput').val()} ,function(response) {
+		gotoWorkZoneByName(response.workzonename);
 		});
 	});
 });
@@ -96,8 +82,8 @@ function listLookup(event,list,url,data) {
         postIt( url, data ,function(response) {
                 // clear any previously loaded options in the datalist
                 list.innerHTML = "";
-                if (response.data){
-					response.data.forEach(function(item) {
+                if (response){
+					response.forEach(function(item) {
 						// Create a new <option> element.
 						var option = document.createElement('option');
 						option.value = item;
@@ -121,14 +107,7 @@ function enableCreateButton(){
 		return;
 	}
 	postIt( "JobsHandler.php", {action:1 ,wzName: wz, jobName:job} ,function(response) {
-		console.log(response);
-		console.log(response.errorcode);
-		console.log(response.value);
-		if (response.errorcode!==0){
-			console.log(response.errorcode);
-			return;
-		}
-		if (response.value){
+		if (response){
 			$("#createFlowButton").prop("disabled",false);
 		}else{
 			$("#createFlowButton").prop("disabled",true);
@@ -149,7 +128,7 @@ $.ajax({
 			return;
 		}
 
-    success(data);
+    success(data.data);
   });
 }
 
