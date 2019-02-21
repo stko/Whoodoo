@@ -27,6 +27,8 @@
 <input list="workzoneList" id="workzoneInput" autocomplete=off>
 <datalist id="workzoneList">
 </datalist>
+<button type="button" id="showWorkZone">Search</button>
+
 <br/>
 <label for="jobInput">New Job to start</label>
 <input list="jobList" id="jobInput" autocomplete=off>
@@ -36,7 +38,7 @@
 <div id="wzOverview">
   <table>
     <tr v-for="row in workZoneTable">
-      <td>{{ row.name }}</td><td>{{ row.count }}</td>
+      <td><a href="javascript:showWorkZoneByName(this);">{{ row.name }}</a></td><td>{{ row.count }}</td>
     </tr>
   </table>
 </div>
@@ -54,16 +56,33 @@ data: {
 
 
 function gotoWorkZoneByName(wzName){
-	postIt( "JobsHandler.php", {action:3 ,wzName: wzName , jobName: ""} ,function(response) {
+	postIt( "JobsHandler.php", {action:3 ,wzName: wzName } ,function(response) {
 		wzOverview.workZoneTable=response;
+	});
+	showWorkZoneByName(wzName);
+}
+
+function showWorkZoneByName(wzName){
+	postIt( "JobsHandler.php", {action:4 ,wzName: wzName } ,function(response) {
+		alert("häh?");
 	});
 }
 
 $( document ).ready( function(){
     // Add keyup event listeners to our input autocomplete elements
-	$('#workzoneInput').on("keyup", function(event){listLookup(event,document.getElementById('workzoneList'),"WorkZones.php",{action:1})});
-	$('#jobInput').on("keyup", function(event){listLookup(event,document.getElementById('jobList'),"JobTemplates.php",{action:1})});
-	
+	$('#workzoneInput').keyup( function(event){listLookup(event,document.getElementById('workzoneList'),"WorkZones.php",{action:1})});
+	$('#workzoneInput').change( function(event){gotoWorkZoneByName($('#workzoneInput').val())});
+	$('#jobInput').keyup( function(event){
+		listLookup(event,document.getElementById('jobList'),"JobTemplates.php",{action:1})
+	}).keydown(function( event ) {
+		if ( event.which == 13 ) {
+			event.preventDefault();
+			gotoWorkZoneByName($('#workzoneInput').val());
+		}
+	});
+	$( "#showWorkZone" ).click(function() {
+		gotoWorkZoneByName($('#workzoneInput').val());
+	});
 	$( "#createFlowButton" ).click(function() {
 		postIt( "JobsHandler.php", {action:2 ,wzName: $('#workzoneInput').val(), jobName:$('#jobInput').val()} ,function(response) {
 		gotoWorkZoneByName(response.workzonename);

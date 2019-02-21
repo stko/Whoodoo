@@ -126,6 +126,36 @@ class JobsHandler  {
 	}
 	
 	
+	public function showWorkZoneByName($wzName){
+		$jobs = $this->db->select("joblist", [
+			"[>]workzone" => ["workzoneid" => "id"],
+			"[>]jobnames" => ["jobnameid" => "id"],
+		],
+		[
+			"joblist.id",
+			"jobnames.name",
+			"joblist.userid",
+			"joblist.state"
+		],
+		[
+			"workzone.name[=]" => $wzName
+		]);
+		$edges = $this->db->select("edgelist", [
+			"[>]workzone" => ["workzoneid" => "id"]
+		],
+		[
+			"edgelist.id",
+			"edgelist.fromjobid",
+			"edgelist.tojobid",
+			"edgelist.state"
+		],
+		[
+			"workzone.name[=]" => $wzName
+		]);
+		return [ "jobs" => $jobs , "edges" => $edges];
+	}
+	
+	
 	public function doRequest($post){
 		$action = $post['action'];
 		if ($action) {
@@ -177,6 +207,13 @@ class JobsHandler  {
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
 				die('{"errorcode":0, "data": '.json_encode(array_values($this->getWorkZoneOverview($wzName))).'}');
+
+			}
+			if ($action==4){ //request Work Zone overview
+				if (!isset($wzName) ){
+					die('{"errorcode":1, "error": "Variable Error"}');
+				}
+				die('{"errorcode":0, "data": '.json_encode(array_values($this->showWorkZoneByName($wzName))).'}');
 
 			}
 		}
