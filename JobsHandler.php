@@ -132,8 +132,8 @@ class JobsHandler  {
 			"[>]jobnames" => ["jobnameid" => "id"],
 		],
 		[
-			"joblist.id",
-			"jobnames.name",
+			"joblist.id(key)",
+			"jobnames.name(text)",
 			"joblist.userid",
 			"joblist.state"
 		],
@@ -145,14 +145,20 @@ class JobsHandler  {
 		],
 		[
 			"edgelist.id",
-			"edgelist.fromjobid",
-			"edgelist.tojobid",
+			"edgelist.fromjobid(from)",
+			"edgelist.tojobid(to)",
 			"edgelist.state"
 		],
 		[
 			"workzone.name[=]" => $wzName
 		]);
-		return [ "jobs" => $jobs , "edges" => $edges];
+		$res=[ "nodes" => $jobs , "links" => $edges];
+		ob_start();
+		var_dump($res);
+		$result = ob_get_clean();
+		error_log($result);
+
+		return $res;
 	}
 	
 	
@@ -213,7 +219,7 @@ class JobsHandler  {
 				if (!isset($wzName) ){
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
-				die('{"errorcode":0, "data": '.json_encode(array_values($this->showWorkZoneByName($wzName))).'}');
+				die('{"errorcode":0, "data": '.json_encode($this->showWorkZoneByName($wzName)).'}');
 
 			}
 		}
