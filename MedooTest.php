@@ -1,49 +1,44 @@
 <?php
-namespace app;
 
 require  'Medoo.php';
 require  'Database.php';
 
 # sudo apt install php-sqlite3
 
-use Database\Database;
 use Medoo\Medoo;
 
   
 // Singleton request
 $database = Database::instance();
+
 /*
-$database->insert("users",[
-	[
-		'username' => 'stko',
-		'firstname' => 'Steffen',
-		'lastname' => 'Köhler',
-		'state' => 1
-	],
-	[
-		'username' => 'woso',
-		'firstname' => 'Wolfgang',
-		'lastname' => 'Sauer',
-		'state' => 1
+$data = $database->query(
+	"SELECT <jobname.name> FROM <jobname>,<joblist> WHERE <joblist.workzoneid> = :workzoneid AND <joblist.state> != :state AND <jobname.id> = <joblist.jobnameid>" , [
+		":workzoneid" => 2,
+		":state" => 1
 	]
-]);
+)->fetchAll();
+*/
 
-$datas = $database->select("users", [
-	"username",
-	"firstname",
-	"lastname",
-	"state"
-], [
-	#"user_id[>]" => 100
-]);
+$data = $database->query(
+	"SELECT <workzone.name> , COUNT (<joblist.id>)  FROM <workzone> INNER JOIN  <whoodoo_joblist> ON  <workzone.id> = <joblist.workzoneid> WHERE (lower(<workzone.name>) LIKE lower( :workzonename ) ) AND <joblist.state> != :state GROUP BY <workzone.name>" , [
+		":workzonename" => "%cust%",
+		":state" => 1
+	]
+);
 
-
-foreach($datas as $data)
-{
-	echo "username:" . $data["username"] . "\n";
-	echo "firstname:" . $data["firstname"] . "\n";
-	echo "lastname:" . $data["lastname"] . "\n";
-	echo "state:" . $data["state"] . "\n";
+if ($data===false){
+	var_dump( $database->error() );
+}else{
+	print_r($data->fetchAll());
 }
-*/ 
+var_dump($database->log());
+
+//	"SELECT <workzone.name> , COUNT (<joblist.id>)  FROM <workzone> INNER JOIN  <whoodoo_joblist> ON  <workzone.id> = <joblist.workzoneid> WHERE (lower(<workzone.name>) LIKE lower( :workzonename ) ) AND <joblist.state> != :state "
+
+
+/*"SELECT <workzone.name> ,COUNT (<joblist.id>) FROM <workzone> , <whoodoo_joblist> WHERE (lower(<workzone.name>) LIKE :workzonename ) AND <joblist.state> != :state AND <workzone.id> = <joblist.workzoneid>" , [
+		":workzonename" => "%customer%",
+		":state" => 1
+*/
 ?>

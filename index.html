@@ -34,7 +34,11 @@
 </datalist>
 <button type="button" id="createFlowButton" disabled="disabled">Create new Flow</button>
 <div id="wzOverview">
-  <pre>{{ message }}</pre>
+  <table>
+    <tr v-for="row in workZoneTable">
+      <td>{{ row.name }}</td><td>{{ row.count }}</td>
+    </tr>
+  </table>
 </div>
 
 <script src="https://unpkg.com/vue@2.2.4/dist/vue.js"></script>
@@ -44,14 +48,14 @@
 var wzOverview= new Vue({
   el: '#wzOverview',
 data: {
-    message: 'Hello Vue!'
+    workZoneTable: []
   }
 })
 
 
 function gotoWorkZoneByName(wzName){
 	postIt( "JobsHandler.php", {action:3 ,wzName: wzName , jobName: ""} ,function(response) {
-	wzOverview.message=wzName;
+		wzOverview.workZoneTable=response;
 	});
 }
 

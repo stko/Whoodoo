@@ -105,45 +105,79 @@ class JobsHandler  {
 	}
 
 	
+	public function getWorkZoneOverview($wzName){
+		$data = $this->db->query(
+			"SELECT <workzone.name> , COUNT (<joblist.id>)  FROM <workzone> INNER JOIN  <whoodoo_joblist> ON  <workzone.id> = <joblist.workzoneid> WHERE (lower(<workzone.name>) LIKE lower( :workzonename ) ) AND <joblist.state> != :state GROUP BY <workzone.name>" , [
+				":workzonename" => "%".$wzName."%",
+				":state" => 1
+			]
+		);
+
+		if ($data===false){
+			die('{"errorcode":1, "error": "DB Error 1"}');
+		}else{
+			$res=$data->fetchAll();
+			$data=array();
+			foreach($res as $wzResult){
+				$data[]=["name" => $wzResult["name"] , "count" => $wzResult[1]];
+			}
+			return $data;
+		}
+	}
+	
+	
 	public function doRequest($post){
 		$action = $post['action'];
 		if ($action) {
 			$wzName = strtolower($post['wzName']);
 			$jobName = $post['jobName'];
-			if (!isset($wzName) || !isset($jobName)){
-				die('{"errorcode":1, "error": "Variable Error"}');
-			}
-			if (!(preg_match("/^(\w+\.)+\w+$/",$wzName)===1)){
-				die('{"errorcode":0, "data": false, "error": "Work Zone Invalid syntax"}');
-			}
-			if (!$this->jt->jobExists($jobName)){
-				die('{"errorcode":0, "data": false, "error": "Job not exists"}');
-			}
 			if ($action==1){ //ok to create?
-					die('{"errorcode":0, "data": true}');
+				if (!isset($wzName) || !isset($jobName)){
+					die('{"errorcode":1, "error": "Variable Error"}');
+				}
+				if (!(preg_match("/^(\w+\.)+\w+$/",$wzName)===1)){
+					die('{"errorcode":0, "data": false, "error": "Work Zone Invalid syntax"}');
+				}
+				if (!$this->jt->jobExists($jobName)){
+					die('{"errorcode":0, "data": false, "error": "Job not exists"}');
+				}
+				die('{"errorcode":0, "data": true}');
 			}
 			if ($action==2){ //create
-					error_log("Create...");
-					$wzID=$this->wz->createWorkZone($wzName);
-					error_log("Created id: $wzID");
-					$toDo=$this->jt->getAllDependencies($jobName);
-					ob_start();
-					var_dump($toDo);
-					$result = ob_get_clean();
-					error_log($result);
-					$jobIDs=array();
-					foreach ($toDo as $successorJobName => $childs){
-						$toJobID=$this->createJob($wzID,$successorJobName,"");
-						foreach ($childs  as $predecessorJobName =>$child){
-							$fromJobID=$this->createJob($wzID,$predecessorJobName,"");
-							// create the edges here
-							$this->createOrModifyEdge($wzID,$fromJobID,$toJobID,0);
-						}
+				if (!isset($wzName) || !isset($jobName)){
+					die('{"errorcode":1, "error": "Variable Error"}');
+				}
+				if (!(preg_match("/^(\w+\.)+\w+$/",$wzName)===1)){
+					die('{"errorcode":0, "data": false, "error": "Work Zone Invalid syntax"}');
+				}
+				if (!$this->jt->jobExists($jobName)){
+					die('{"errorcode":0, "data": false, "error": "Job not exists"}');
+				}
+				error_log("Create...");
+				$wzID=$this->wz->createWorkZone($wzName);
+				error_log("Created id: $wzID");
+				$toDo=$this->jt->getAllDependencies($jobName);
+				ob_start();
+				var_dump($toDo);
+				$result = ob_get_clean();
+				error_log($result);
+				$jobIDs=array();
+				foreach ($toDo as $successorJobName => $childs){
+					$toJobID=$this->createJob($wzID,$successorJobName,"");
+					foreach ($childs  as $predecessorJobName =>$child){
+						$fromJobID=$this->createJob($wzID,$predecessorJobName,"");
+						// create the edges here
+						$this->createOrModifyEdge($wzID,$fromJobID,$toJobID,0);
 					}
-					die('{"errorcode":0, "data": { "workzoneid" :'.$wzID.', "workzonename": "'.$wzName.'" } }');
+				}
+				die('{"errorcode":0, "data": { "workzoneid" :'.$wzID.', "workzonename": "'.$wzName.'" } }');
 			}
 			if ($action==3){ //request Work Zone overview
-					die('{"errorcode":0, "data": true}');
+				if (!isset($wzName) ){
+					die('{"errorcode":1, "error": "Variable Error"}');
+				}
+				die('{"errorcode":0, "data": '.json_encode(array_values($this->getWorkZoneOverview($wzName))).'}');
+
 			}
 		}
 	}
