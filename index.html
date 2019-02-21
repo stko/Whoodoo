@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/resources/demos/style.css">
   <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.0.3/go-debug.js"></script>
   <script>
   $( function() {
     $( "#tabs" ).tabs();
@@ -68,7 +69,7 @@ function showWorkZoneByName(wzName){
 	});
 }
 
-$( document ).ready( function(){
+$( function(){
     // Add keyup event listeners to our input autocomplete elements
 	$('#workzoneInput').keyup( function(event){listLookup(event,document.getElementById('workzoneList'),"WorkZones.php",{action:1})});
 	$('#workzoneInput').change( function(event){gotoWorkZoneByName($('#workzoneInput').val())});
@@ -88,7 +89,73 @@ $( document ).ready( function(){
 		gotoWorkZoneByName(response.workzonename);
 		});
 	});
+	
+	 var $$ = go.GraphObject.make;  // for conciseness in defining templates, avoid $ due to jQuery
+    var myDiagram = $$(go.Diagram, "myDiagramDiv",  // create a Diagram for the DIV HTML element
+                   {
+                     "undoManager.isEnabled": true  // enable undo & redo
+                   });
+    // define a simple Node template
+    myDiagram.nodeTemplate =
+      $$(go.Node, "Auto",  // the Shape will go around the TextBlock
+        $$(go.Shape, "RoundedRectangle", { strokeWidth: 0},
+          // Shape.fill is bound to Node.data.color
+          new go.Binding("fill", "color")),
+        $$(go.TextBlock,
+          { margin: 8 },  // some room around the text
+          // TextBlock.text is bound to Node.data.key
+          new go.Binding("text", "text"))
+      );
+
+    myDiagram.toolManager.clickSelectingTool.standardMouseSelect = function() {
+      var diagram = this.diagram;
+      if (diagram === null || !diagram.allowSelect) return;
+      var e = diagram.lastInput;
+      if (!(e.control || e.meta) && !e.shift) {
+        var part = diagram.findPartAt(e.documentPoint, false);
+        if (part !== null) {
+          var firstselected = null;  // is this or any containing Group selected?
+          var node = part;
+          while (node !== null) {
+            if (node.isSelected) {
+              firstselected = node;
+              break;
+            } else {
+              node = node.containingGroup;
+            }
+          }
+          if (firstselected !== null) { 
+			console.log(firstselected.kb.key);
+            return;
+          }
+        }
+      }
+      go.ClickSelectingTool.prototype.standardMouseSelect.call(this);
+    };
+      
+           var jsondata={
+  "nodes":[
+{ "key": 1 , "text":"Alpha\nbla",   "color":"lightblue" },
+{ "key": 2 , "text":"Beta", "color":"orange" },
+{ "key": 3 , "text":"Gamma", "color":"lightgreen" },
+{ "key": 4 , "text":"Delta", "color":"pink" }
+  ],
+  "links":[
+{ "from": 1, "to": 2 },
+{ "from": 1, "to": 3 },
+{ "from": 2, "to": 2 },
+{ "from": 3, "to": 4 },
+{ "from" :4, "to": 1 }
+  ]
+};
+
+
+myDiagram.model = new go.GraphLinksModel(jsondata["nodes"], jsondata["links"]);
+
+
+      
 });
+
 
 
 // Autocomplete for form
@@ -156,10 +223,16 @@ $.ajax({
 }
 
 </script>
+    <div id="sample">
+  <p>Minimal <b>GoJS</b> Sample, reading JSON data</p>
+  <!-- The DIV for the Diagram needs an explicit size or else we won't see anything.
+       Also add a border to help see the edges. -->
+  <div id="myDiagramDiv" style="border: solid 1px black; width:400px; height:400px"></div>
 
+</div>
   </div>
   <div id="tabs-2">
-    <p>Morbi tincidunt, dui sit amet facilisis feugiat, odio metus gravida ante, ut pharetra massa metus id nunc. Duis scelerisque molestie turpis. Sed fringilla, massa eget luctus malesuada, metus eros molestie lectus, ut tempus eros massa ut dolor. Aenean aliquet fringilla sem. Suspendisse sed ligula in ligula suscipit aliquam. Praesent in eros vestibulum mi adipiscing adipiscing. Morbi facilisis. Curabitur ornare consequat nunc. Aenean vel metus. Ut posuere viverra nulla. Aliquam erat volutpat. Pellentesque convallis. Maecenas feugiat, tellus pellentesque pretium posuere, felis lorem euismod felis, eu ornare leo nisi vel felis. Mauris consectetur tortor et purus.</p>
+bla
   </div>
   <div id="tabs-3">
     <p>Mauris eleifend est et turpis. Duis id erat. Suspendisse potenti. Aliquam vulputate, pede vel vehicula accumsan, mi neque rutrum erat, eu congue orci lorem eget lorem. Vestibulum non ante. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Fusce sodales. Quisque eu urna vel enim commodo pellentesque. Praesent eu risus hendrerit ligula tempus pretium. Curabitur lorem enim, pretium nec, feugiat nec, luctus a, lacus.</p>
