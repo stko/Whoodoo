@@ -60,17 +60,59 @@ data: {
 })
 
 var myDiagram;
+var jsonEditor;
+var actualEditJobID;
+
+
+function validateEditor(value){
+
+}
 
 function openEditor(jobID){
 	postIt( "JobsHandler.php", {action:5 ,jobID: jobID } ,function(response) {
-	console.log(response.schema);
-      var editor = new JSONEditor(document.getElementById('editJob'),{
-        schema: response.schema,
-      disable_collapse : true ,
-      disable_edit_json	 : false ,
-      disable_properties : false ,
-      
-      });
+		console.log(response.schema);
+		actualEditJobID=jobID;
+		if (jsonEditor){
+			jsonEditor.destroy();
+		}
+		jsonEditor = new JSONEditor(document.getElementById('editJob'),{
+			schema: response.schema,
+			disable_collapse : true ,
+			disable_edit_json	 : true ,
+			disable_properties : true      
+		});
+		jsonEditor.on('change',function(){
+			var values=jsonEditor.getValue();
+			var isValid=true;
+			$.each(values, function( index, value ) {
+				console.log(value);
+				switch (typeof value) {
+					case "boolean":
+					if (value==false){
+						isValid=false
+						console.log("fails on bool");
+					}
+					break;
+					case "number":
+					if (value==0){
+						isValid=false
+						console.log("fails on number");
+					}
+					break;
+					case "string":
+					if (value==""){
+						isValid=false
+						console.log("fails on string");
+					}
+					break;
+					default:
+						isValid=false
+						console.log("fails on "+(typeof value));
+				}
+			});
+			console.log("is valid:"+isValid);
+			console.log(values);
+		});
 	});
 }
 
@@ -155,6 +197,9 @@ $( function(){
       }
       go.ClickSelectingTool.prototype.standardMouseSelect.call(this);
     };
+	$( "#submitJsonEditor" ).click(function() {
+		 console.log(jsonEditor.getValue());
+	});
       
            var jsondata={
   "nodes":[
@@ -255,7 +300,10 @@ $.ajax({
 </div>
   </div>
   </div>
+  <div id="editdiv">
   <div id="editJob">
+  </div>
+      <button id='submitJsonEditor'>Submit (console.log)</button>
   </div>
   <div id="tabs-2">
 bla

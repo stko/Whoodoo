@@ -23,107 +23,52 @@ The Title
 the Form schema ([[https://rawgit.com/json-editor/json-editor/master/docs/demo.html|Online- Editor]]
 <code json foo.txt>
 {
-  "title": "Person",
-  "type": "object",
-  "required": [
-    "name",
-    "age",
-    "date",
-    "favorite_color",
-    "gender",
-    "location",
-    "pets"
-  ],
-  "properties": {
-    "name": {
-      "type": "string",
-      "description": "First and Last name",
-      "minLength": 4,
-      "default": "Jeremy Dorn"
-    },
-    "age": {
-      "type": "integer",
-      "default": 25,
-      "minimum": 18,
-      "maximum": 99
-    },
-    "favorite_color": {
-      "type": "string",
-      "format": "color",
-      "title": "favorite color",
-      "default": "#ffa500"
-    },
-    "gender": {
-      "type": "string",
-      "enum": [
-        "male",
-        "female"
-      ]
-    },
-    "date": {
-      "type": "string",
-      "format": "date",
-      "options": {
-        "flatpickr": {}
-      }
-    },
-    "location": {
-      "type": "object",
-      "title": "Location",
-      "properties": {
-        "city": {
-          "type": "string",
-          "default": "San Francisco"
-        },
-        "state": {
-          "type": "string",
-          "default": "CA"
-        },
-        "citystate": {
-          "type": "string",
-          "description": "This is generated automatically from the previous two fields",
-          "template": "{{city}}, {{state}}",
-          "watch": {
-            "city": "location.city",
-            "state": "location.state"
-          }
-        }
-      }
-    },
-    "pets": {
-      "type": "array",
-      "format": "table",
-      "title": "Pets",
-      "uniqueItems": true,
-      "items": {
-        "type": "object",
-        "title": "Pet",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "cat",
-              "dog",
-              "bird",
-              "reptile",
-              "other"
-            ],
-            "default": "dog"
-          },
-          "name": {
-            "type": "string"
-          }
-        }
+   "type": "object",
+   "title": "Car",
+   "properties": {
+      "make": {
+         "type": "string",
+         "enum": [
+            "Toyota",
+            "BMW",
+            "Honda",
+            "Ford",
+            "Chevy",
+            "VW"
+         ]
       },
-      "default": [
-        {
-          "type": "dog",
-          "name": "Walter"
-        }
-      ]
-    }
-  }
+      "model": {
+         "type": "string"
+      },
+      "year": {
+         "type": "integer",
+         "enum": [
+            1995,
+            1996,
+            1997,
+            1998,
+            1999,
+            2000,
+            2001,
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014
+         ],
+         "default": 2008
+      }
+   }
 }
+
 </code>
 
 
