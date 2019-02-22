@@ -6,7 +6,8 @@ CREATE TABLE whoodoo_users (
 			firstname TEXT, 
 			lastname TEXT,
 			state INTEGER );
-INSERT INTO whoodoo_users VALUES(1,'foo','Alice','Smith',1);
+INSERT INTO whoodoo_users VALUES(1,'foo','Any','Nobody',1);
+INSERT INTO whoodoo_users VALUES(2,'foo2','Alice','Smith',1);
 CREATE TABLE whoodoo_workzone (
 			id INTEGER PRIMARY KEY, 
 			name VARCHAR( 200 ) NOT NULL );
@@ -21,6 +22,7 @@ CREATE TABLE whoodoo_joblist (
 			workzoneid INTEGER NOT NULL,
 			jobnameid INTEGER NOT NULL,
 			userid INTEGER NOT NULL,
+			title VARCHAR( 200 ) NOT NULL,
 			content TEXT,
 			state INTEGER NOT NULL);
 CREATE TABLE whoodoo_edgelist (
@@ -29,6 +31,18 @@ CREATE TABLE whoodoo_edgelist (
 			fromjobid INTEGER NOT NULL,
 			tojobid INTEGER NOT NULL,
 			state INTEGER NOT NULL);
+CREATE TABLE whoodoo_statecodes (
+			id INTEGER PRIMARY KEY, 
+			statename VARCHAR( 30 ) NOT NULL,
+			statecolor VARCHAR( 30 ) NOT NULL,
+			statecolorcode VARCHAR( 10 ) NOT NULL,
+			state INTEGER NOT NULL);
+INSERT INTO whoodoo_statecodes VALUES(1,'Requested',"Gainsboro","#DCDCDC",0);
+INSERT INTO whoodoo_statecodes VALUES(2,'Done',"Lime","#00FF00",1);
+INSERT INTO whoodoo_statecodes VALUES(3,'In Work',"Aqua","#00FFFF",2);
+INSERT INTO whoodoo_statecodes VALUES(4,'Rework',"Gold","#FFD700",3);
+INSERT INTO whoodoo_statecodes VALUES(5,'Unclear',"Orange","#FFA500",4);
+INSERT INTO whoodoo_statecodes VALUES(6,'Faulty',"OrangeRed","	#FF4500",5);
 			
 
 COMMIT;

@@ -3,12 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>jQuery UI Tabs - Default functionality</title>
+  <title>Whoodoo - Who's doing it?</title>
   <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
   <link rel="stylesheet" href="/resources/demos/style.css">
   <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <!-- https://gojs.net/latest/index.html -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.0.3/go-debug.js"></script>
+  <!-- https://github.com/json-editor/json-editor -->
+  <script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>
   <script>
   $( function() {
     $( "#tabs" ).tabs();
@@ -24,6 +27,7 @@
     <li><a href="#tabs-3">Aenean lacinia</a></li>
   </ul>
   <div id="tabs-1">
+  <div id="searchWZ">
 <label for="workzoneList">Work Zone</label>
 <input list="workzoneList" id="workzoneInput" autocomplete=off>
 <datalist id="workzoneList">
@@ -56,6 +60,51 @@ data: {
 })
 
 var myDiagram;
+
+function openEditor(jobID){
+	//postIt( "JobsHandler.php", {action:5 ,jobID: jobID } ,function(response) {
+      var editor = new JSONEditor(document.getElementById('editJob'),{
+        schema: {
+          type: "object",
+          title: "Car",
+          properties: {
+            make: {
+              type: "string",
+              enum: [
+                "Toyota",
+                "BMW",
+                "Honda",
+                "Ford",
+                "Chevy",
+                "VW"
+              ]
+            },
+            model: {
+              type: "string"
+            },
+            year: {
+              type: "integer",
+              enum: [
+                1995,1996,1997,1998,1999,
+                2000,2001,2002,2003,2004,
+                2005,2006,2007,2008,2009,
+                2010,2011,2012,2013,2014
+              ],
+              default: 2008
+            },
+            safety: {
+              type: "integer",
+              format: "rating",
+              maximum: "5",
+              exclusiveMaximum: false,
+              readonly: false
+            }
+          }
+        }
+      });
+//	});
+}
+
 
 function gotoWorkZoneByName(wzName){
 	postIt( "JobsHandler.php", {action:3 ,wzName: wzName } ,function(response) {
@@ -101,9 +150,9 @@ $( function(){
     // define a simple Node template
     myDiagram.nodeTemplate =
       $$(go.Node, "Auto",  // the Shape will go around the TextBlock
-        $$(go.Shape, "RoundedRectangle", { strokeWidth: 0, fill: "orange"},
+        $$(go.Shape, "RoundedRectangle", { strokeWidth: 0},
           // Shape.fill is bound to Node.data.color
-         // new go.Binding("fill", "color")
+         new go.Binding("fill", "color")
          ),
         $$(go.TextBlock,
           { margin: 8 },  // some room around the text
@@ -130,6 +179,7 @@ $( function(){
           }
           if (firstselected !== null) { 
 			console.log(firstselected.kb.key);
+			openEditor(firstselected.kb.key);
             return;
           }
         }
@@ -234,6 +284,9 @@ $.ajax({
   <div id="myDiagramDiv" style="border: solid 1px black; width:400px; height:400px"></div>
 
 </div>
+  </div>
+  </div>
+  <div id="editJob">
   </div>
   <div id="tabs-2">
 bla

@@ -60,7 +60,7 @@ class JobsHandler  {
 		}
 	}
 
-	public function createJob($wzID,$job,$content){
+	public function createJob($wzID,$job,$title,$content){
 		$jobID=$this->createJobName($job);
 		$values = $this->db->select("joblist", [
 			"id",
@@ -72,7 +72,8 @@ class JobsHandler  {
 			$this->db->insert("joblist", [
 				"workzoneid" => $wzID,
 				"jobnameid" => $jobID,
-				"userid" => 0,
+				"userid" => 1,
+				"title" => $title,
 				"content" => $content,
 				"state" => 0
 			]);
@@ -130,11 +131,17 @@ class JobsHandler  {
 		$jobs = $this->db->select("joblist", [
 			"[>]workzone" => ["workzoneid" => "id"],
 			"[>]jobnames" => ["jobnameid" => "id"],
+			"[>]users" => ["userid" => "id"],
+			"[>]statecodes" => "state"
 		],
 		[
 			"joblist.id(key)",
 			"jobnames.name(text)",
+			"statecodes.statecolorcode(color)",
+			"users.firstname",
+			"users.lastname",
 			"joblist.userid",
+			"joblist.title",
 			"joblist.state"
 		],
 		[
@@ -152,6 +159,11 @@ class JobsHandler  {
 		[
 			"workzone.name[=]" => $wzName
 		]);
+		foreach($jobs as $key => $job){
+			error_log($job["title"]);
+
+			$jobs[$key]["text"]=$job["title"]."\n".$job["firstname"]." ".$job["lastname"]."\n[".$job["text"]."]";
+		}
 		$res=[ "nodes" => $jobs , "links" => $edges];
 		ob_start();
 		var_dump($res);
@@ -199,9 +211,9 @@ class JobsHandler  {
 				error_log($result);
 				$jobIDs=array();
 				foreach ($toDo as $successorJobName => $childs){
-					$toJobID=$this->createJob($wzID,$successorJobName,"");
+					$toJobID=$this->createJob($wzID,$successorJobName,$this->jt->getJobTitle($successorJobName),json_encode($this->jt->getJobContent($successorJobName)));
 					foreach ($childs  as $predecessorJobName =>$child){
-						$fromJobID=$this->createJob($wzID,$predecessorJobName,"");
+						$fromJobID=$this->createJob($wzID,$predecessorJobName,$this->jt->getJobTitle($predecessorJobName),json_encode($this->jt->getJobContent($predecessorJobName)));
 						// create the edges here
 						$this->createOrModifyEdge($wzID,$fromJobID,$toJobID,0);
 					}

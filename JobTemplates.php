@@ -77,6 +77,22 @@ class JobTemplates {
 		return $jobList;
 	}
 	
+	public function getJobContent($job){ //must be called with a fully qualified job name, obiously
+		if (!array_key_exists($job,$this->templates)){
+			error_log("$job not found");
+			return [];
+		}
+		return $this->templates[$job];
+	}
+	
+	public function getJobTitle($job){ //must be called with a fully qualified job name, obiously
+		if (!array_key_exists($job,$this->templates)){
+			error_log("$job not found");
+			return false;
+		}
+		return $this->templates[$job]->title;
+	}
+	
 	private function fillDependencies(&$arr, $job){
 		if (!array_key_exists($job,$this->templates)){
 			error_log("$job not found");
