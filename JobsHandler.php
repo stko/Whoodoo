@@ -46,6 +46,21 @@ class JobsHandler  {
 	}
 	
 
+	public function getJobData($jobID) {
+		$values = $this->db->select("joblist", [
+			"content",
+			], [
+			"id[=]" => $jobID
+		]);
+		if (empty($values)){
+			return "{}";
+		}else{
+			$json=json_decode($values[0]["content"]);
+			return $json->schema;
+		}
+	}
+	
+
 	
 	public function createJobName($job){
 		$id=$this->getJobNameID($job);
@@ -232,6 +247,15 @@ class JobsHandler  {
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
 				die('{"errorcode":0, "data": '.json_encode($this->showWorkZoneByName($wzName)).'}');
+
+			}
+			if ($action==5){ //request Job data
+
+				if (!isset($post['jobID']) ){
+					die('{"errorcode":1, "error": "Variable Error"}');
+				}
+				$jobID = $post['jobID'];
+				die('{"errorcode":0, "data": { "schema" : '.json_encode($this->getJobData($jobID)).', "startval" : {} }}');
 
 			}
 		}
