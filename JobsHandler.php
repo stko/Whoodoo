@@ -120,6 +120,28 @@ class JobsHandler  {
 		}
 	}
 
+	public function storeUserEntry($data,$userID){
+		//error_log($strData);
+		//$data=json_decode($strData);
+		if (!isset($data["jobID"]) 
+		or !isset($data["predecessorState"])
+		or !isset($data["validated"])
+		or !isset($data["content"])
+		or !isset($data["state"])
+		){
+			die('{"errorcode":1, "error": "Variable Error"}');
+		}
+		$this->db->insert("changelog", [
+			"jobid" => $data["jobID"],
+			"timestamp" => time(),
+			"userid" => $userID,
+			"predecessorState" => $data["predecessorState"],
+			"validated" => $data["validated"],
+			"content" => json_encode($data["content"]),
+			"state" => $data["state"]
+		]);
+	}
+
 	
 	public function getWorkZoneOverview($wzName){
 		$data = $this->db->query(
@@ -139,6 +161,17 @@ class JobsHandler  {
 			}
 			return $data;
 		}
+	}
+	
+	
+	public function getUserEntry($jobID){
+		$data = $this->db->get("changelog", [
+			"content"
+		], [
+			"jobid" => $jobID,
+			"ORDER" => ["timestamp" => "DESC"],
+		]);
+		return json_decode($data["content"]);
 	}
 	
 	
@@ -190,6 +223,10 @@ class JobsHandler  {
 	
 	
 	public function doRequest($post){
+		ob_start();
+		var_dump($post);
+		$result = ob_get_clean();
+		error_log($result);
 		$action = $post['action'];
 		if ($action) {
 			$wzName = strtolower($post['wzName']);
@@ -258,6 +295,22 @@ class JobsHandler  {
 				die('{"errorcode":0, "data": { "schema" : '.json_encode($this->getJobData($jobID)).', "startval" : {} }}');
 
 			}
+			if ($action==6){ //store user entry
+				if (!isset($post['input'])) {
+					die('{"errorcode":1, "error": "Variable Error"}');
+				}
+				$this->storeUserEntry($post['input'],1);
+				die('{"errorcode":0, "data": true}');
+
+			}
+			if ($action==7){ //get user entry
+				if (!isset($post['jobID'])) {
+					die('{"errorcode":1, "error": "Variable Error"}');
+				}
+				die('{"errorcode":0, "data": '.json_encode($this->getUserEntry($post['jobID'])).'}');
+			}
+		}else{
+			die('{"errorcode":1, "error": "Variable Error"}');
 		}
 	}
 	

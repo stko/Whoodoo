@@ -64,8 +64,37 @@ var jsonEditor;
 var actualEditJobID;
 
 
-function validateEditor(value){
-
+function validateEditor(values){
+	var isValid=true;
+	$.each(values, function( index, value ) {
+		console.log(value);
+		switch (typeof value) {
+			case "boolean":
+			if (value==false){
+				isValid=false
+				console.log("fails on bool");
+			}
+			break;
+			case "number":
+			if (value==0){
+				isValid=false
+				console.log("fails on number");
+			}
+			break;
+			case "string":
+			if (value==""){
+				isValid=false
+				console.log("fails on string");
+			}
+			break;
+			default:
+				isValid=false
+				console.log("fails on "+(typeof value));
+		}
+	});
+	console.log("is valid:"+isValid);
+	console.log(values);
+	return isValid;
 }
 
 function openEditor(jobID){
@@ -83,35 +112,10 @@ function openEditor(jobID){
 		});
 		jsonEditor.on('change',function(){
 			var values=jsonEditor.getValue();
-			var isValid=true;
-			$.each(values, function( index, value ) {
-				console.log(value);
-				switch (typeof value) {
-					case "boolean":
-					if (value==false){
-						isValid=false
-						console.log("fails on bool");
-					}
-					break;
-					case "number":
-					if (value==0){
-						isValid=false
-						console.log("fails on number");
-					}
-					break;
-					case "string":
-					if (value==""){
-						isValid=false
-						console.log("fails on string");
-					}
-					break;
-					default:
-						isValid=false
-						console.log("fails on "+(typeof value));
-				}
-			});
-			console.log("is valid:"+isValid);
-			console.log(values);
+			 validateEditor(values);
+		});
+		postIt( "JobsHandler.php", {action:7 ,jobID: jobID } ,function(response) {
+			jsonEditor.setValue(response);
 		});
 	});
 }
@@ -198,7 +202,23 @@ $( function(){
       go.ClickSelectingTool.prototype.standardMouseSelect.call(this);
     };
 	$( "#submitJsonEditor" ).click(function() {
-		 console.log(jsonEditor.getValue());
+		var values=jsonEditor.getValue();
+		var res = {
+			"action" : 6,
+			"input" :
+			{
+			"jobID" : actualEditJobID,
+			"predecessorState" : 0,
+			"validated" : validateEditor(values) ? 1 : 0 ,
+			"content" : values ,
+			"state"  : 1 //state
+			}
+		}
+		 console.log(values);
+		postIt( "JobsHandler.php", res ,function(response) {
+		 console.log("values saved on server");
+	});
+
 	});
       
            var jsondata={

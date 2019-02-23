@@ -31,6 +31,15 @@ CREATE TABLE whoodoo_edgelist (
 			fromjobid INTEGER NOT NULL,
 			tojobid INTEGER NOT NULL,
 			state INTEGER NOT NULL);
+CREATE TABLE whoodoo_changelog (
+			id INTEGER PRIMARY KEY, 
+			jobid INTEGER NOT NULL,
+			timestamp INTEGER NOT NULL,
+			userid INTEGER NOT NULL,
+			predecessorState INTEGER NOT NULL,
+			validated INTEGER NOT NULL,
+			content TEXT,
+			state INTEGER NOT NULL);
 CREATE TABLE whoodoo_statecodes (
 			id INTEGER PRIMARY KEY, 
 			statename VARCHAR( 30 ) NOT NULL,
