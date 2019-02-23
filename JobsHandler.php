@@ -163,7 +163,6 @@ class JobsHandler  {
 		}
 	}
 	
-	
 	public function getUserEntry($jobID){
 		$data = $this->db->get("changelog", [
 			"content"
@@ -213,6 +212,34 @@ class JobsHandler  {
 			$jobs[$key]["text"]=$job["title"]."\n".$job["firstname"]." ".$job["lastname"]."\n[".$job["text"]."]";
 		}
 		$res=[ "nodes" => $jobs , "links" => $edges];
+		ob_start();
+		var_dump($res);
+		$result = ob_get_clean();
+		error_log($result);
+
+		return $res;
+	}
+	
+	
+	public function getJobPredecessorStates($jobID){
+		$edges = $this->db->select("edgelist", [
+			"[>]statecodes" => "state",
+			"[>]joblist" => ["fromjobid" => "id"],
+			"[>]jobnames" => ["joblist.jobnameid" => "id"]
+		],
+		[
+			"edgelist.id",
+			"jobnames.name(jobname)",
+			"joblist.title",
+			"joblist.state(jobstate)",
+			"edgelist.state",
+			"statecodes.statecolorcode(color)"
+		],
+		[
+			"tojobid[=]" => $jobID
+		]);
+
+		$res=[ "jobPredecessorStateTable" => $edges];
 		ob_start();
 		var_dump($res);
 		$result = ob_get_clean();
@@ -309,6 +336,15 @@ class JobsHandler  {
 				}
 				die('{"errorcode":0, "data": '.json_encode($this->getUserEntry($post['jobID'])).'}');
 			}
+			if ($action==8){ //request Predecessor status list
+				if (!isset($post['jobID']) ){
+					die('{"errorcode":1, "error": "Variable Error"}');
+				}
+				$jobID = $post['jobID'];
+				die('{"errorcode":0, "data": '.json_encode($this->getJobPredecessorStates($jobID)).'}');
+
+			}
+			
 		}else{
 			die('{"errorcode":1, "error": "Variable Error"}');
 		}

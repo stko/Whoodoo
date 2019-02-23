@@ -43,7 +43,7 @@
 <div id="wzOverview">
   <table>
     <tr v-for="row in workZoneTable">
-      <td><a href="javascript:showWorkZoneByName(this);">{{ row.name }}</a></td><td>{{ row.count }}</td>
+      <td><a v-bind:href=" 'javascript:showWorkZoneByName(\u0022' + row.name + '\u0022);' ">{{ row.name }}</a></td><td>{{ row.count }}</td>
     </tr>
   </table>
 </div>
@@ -52,16 +52,13 @@
 <script>
 'use strict';
 
-var wzOverview= new Vue({
-  el: '#wzOverview',
-data: {
-    workZoneTable: []
-  }
-})
+
 
 var myDiagram;
 var jsonEditor;
 var actualEditJobID;
+var wzOverview;
+var jobPredecessorState;
 
 
 function validateEditor(values){
@@ -98,6 +95,12 @@ function validateEditor(values){
 }
 
 function openEditor(jobID){
+	// read the precessor table
+	postIt( "JobsHandler.php", {action:8 ,jobID: jobID } ,function(response) {
+		console.log(response.schema);
+		jobPredecessorState.jobPredecessorStates=response.jobPredecessorStateTable;
+
+	});
 	postIt( "JobsHandler.php", {action:5 ,jobID: jobID } ,function(response) {
 		console.log(response.schema);
 		actualEditJobID=jobID;
@@ -137,6 +140,19 @@ function showWorkZoneByName(wzName){
 }
 
 $( function(){
+	wzOverview= new Vue({
+		el: '#wzOverview',
+		data: {
+			workZoneTable: []
+		}
+		});
+
+	jobPredecessorState= new Vue({
+		el: '#jobPredecessorState',
+		data: {
+			jobPredecessorStates: []
+		}
+	});
     // Add keyup event listeners to our input autocomplete elements
 	$('#workzoneInput').keyup( function(event){listLookup(event,document.getElementById('workzoneList'),"WorkZones.php",{action:1})});
 	$('#workzoneInput').change( function(event){gotoWorkZoneByName($('#workzoneInput').val())});
@@ -312,15 +328,26 @@ $.ajax({
 
 </script>
     <div id="sample">
-  <p>Minimal <b>GoJS</b> Sample, reading JSON data</p>
+
+
   <!-- The DIV for the Diagram needs an explicit size or else we won't see anything.
        Also add a border to help see the edges. -->
-  <div id="myDiagramDiv" style="border: solid 1px black; width:400px; height:400px"></div>
+  <div id="myDiagramDiv" style="border: solid 1px black; width:90%; height:400px"></div>
 
 </div>
   </div>
   </div>
   <div id="editdiv">
+    <div id="jobPredecessorState">
+  <table>
+    <tr v-for="row in jobPredecessorStates">
+      <td>{{ row.id }}</td>
+      <td v-bind:bgcolor="row.color">{{ row.jobname }}</td>
+     <td v-bind:bgcolor="row.color">{{ row.title }}</td>
+      <td>{{ row.state }}</td>
+     </tr>
+  </table>
+</div>
   <div id="editJob">
   </div>
       <button id='submitJsonEditor'>Submit (console.log)</button>
