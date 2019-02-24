@@ -133,18 +133,27 @@ class JobsHandler  {
 			"workzoneid",
 			"state"
 			], [
-			"id[=]" => $jobID
+			"id[=]" => $data["jobID"]
 		]);
 		$wzID=$values[0]["workzoneid"];
 		$oldState=$values[0]["state"];
 		$newState=$data["state"];
+		$newEdgeState=$data["state"];
 		if ($data["validated"]){
 			$newState=1;
 		}
-		error_log("old state is ".$oldState." new Sate is ".$newState);
-		if ($oldState!=$newState){
+		error_log("old state is ".$oldState." new State is ".$newState);
+		if (($oldState==$newState and $oldState==1) or $oldState!=$newState){
+			if ($oldState==1){// was finished, but isn't anymore
+				if ($oldState==$newState){ //it's an update, which triggers a rework
+				$newEdgeState=3; //reworked
+				}else{ // even more worse: Job is not valid anymore
+				$newEdgeState=5; //faulty
+				$newState=5; // faulty
+				}
+			}
 			$values = $this->db->update("edgelist", [
-					"state" => $newState
+					"state" => $newEdgeState
 				], [
 				"workzoneid[=]" => $wzID,
 				"fromjobid[=]" => $data["jobID"]

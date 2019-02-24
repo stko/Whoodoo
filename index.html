@@ -57,6 +57,7 @@
 var myDiagram;
 var jsonEditor;
 var actualEditJobID;
+var actualWorkzoneName;
 var wzOverview;
 var jobPredecessorState;
 
@@ -141,7 +142,7 @@ function showWorkZoneByName(wzName){
 	postIt( "JobsHandler.php", {action:4 ,wzName: wzName } ,function(response) {
 		//alert("häh?");
 		myDiagram.model = new go.GraphLinksModel(response["nodes"], response["links"]);
-
+		actualWorkzoneName=wzName;
 	});
 }
 
@@ -266,6 +267,7 @@ $( function(){
 		 console.log(values);
 		postIt( "JobsHandler.php", res ,function(response) {
 		 console.log("values saved on server");
+		 showWorkZoneByName(actualWorkzoneName);
 	});
 
 	});
