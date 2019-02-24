@@ -22,7 +22,7 @@ class Database extends Medoo {
 		return self::$instance;
 	}
 
-	private function __construct() {
+	public function __construct() {
 		$dbName='localDB';
 		$tablePrefix='whoodoo_';
 		self::$databaseName = $dbName;
