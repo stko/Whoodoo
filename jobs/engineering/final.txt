@@ -23,51 +23,59 @@ The Title
 the Form schema ([[https://rawgit.com/json-editor/json-editor/master/docs/demo.html|Online- Editor]]
 <code json foo.txt>
 {
-   "type": "object",
-   "title": "Car",
-   "properties": {
-      "make": {
-         "type": "string",
-         "enum": [
-            "Toyota",
-            "BMW",
-            "Honda",
-            "Ford",
-            "Chevy",
-            "VW"
-         ]
-      },
-      "model": {
-         "type": "string"
-      },
-      "year": {
-         "type": "integer",
-         "enum": [
-            1995,
-            1996,
-            1997,
-            1998,
-            1999,
-            2000,
-            2001,
-            2002,
-            2003,
-            2004,
-            2005,
-            2006,
-            2007,
-            2008,
-            2009,
-            2010,
-            2011,
-            2012,
-            2013,
-            2014
-         ],
-         "default": 2008
-      }
-   }
+	"type":"object",
+	"title":"Car",
+	"properties":{
+		"make":{
+			"type":"string",
+			"enum":[
+				"Toyota",
+				"BMW",
+				"Honda",
+				"Ford",
+				"Chevy",
+				"VW"
+			]
+		},
+		"model":{
+			"type":"string"
+		},
+		"year":{
+			"type":"integer",
+			"enum":[
+				1995,
+				1996,
+				1997,
+				1998,
+				1999,
+				2000,
+				2001,
+				2002,
+				2003,
+				2004,
+				2005,
+				2006,
+				2007,
+				2008,
+				2009,
+				2010,
+				2011,
+				2012,
+				2013,
+				2014
+			],
+			"default":2008
+		},
+		"safety":{
+			"type":"integer",
+			"format":"rating",
+			"maximum":"5",
+			"exclusiveMaximum":false,
+			"readonly":false
+		}
+	}
 }
+
 
 </code>
 

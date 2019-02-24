@@ -94,13 +94,19 @@ function validateEditor(values){
 	return isValid;
 }
 
-function openEditor(jobID){
+
+function loadPredecessorStates(jobID){
 	// read the precessor table
 	postIt( "JobsHandler.php", {action:8 ,jobID: jobID } ,function(response) {
 		console.log(response.schema);
 		jobPredecessorState.jobPredecessorStates=response.jobPredecessorStateTable;
 
 	});
+}
+
+function openEditor(jobID){
+	// read the precessor table
+	loadPredecessorStates(jobID);
 	postIt( "JobsHandler.php", {action:5 ,jobID: jobID } ,function(response) {
 		console.log(response.schema);
 		actualEditJobID=jobID;
@@ -151,6 +157,33 @@ $( function(){
 		el: '#jobPredecessorState',
 		data: {
 			jobPredecessorStates: []
+		},
+		methods: {
+			// a computed getter
+			ignoreButtonText: function (state) {
+				// `this` points to the vm instance
+				console.log("ignoreButtonText state:",state);
+				switch (state) {
+					case "6":
+						return "Use";
+						break;
+
+					default:
+						return "Ignore";
+				}
+			},
+			showAcceptButton: function (state) {
+				// `this` points to the vm instance
+				console.log("showAcceptButton state:",state);
+				switch (state) {
+					case "3":
+						return true;
+						break;
+
+					default:
+						return false;
+				}
+			}
 		}
 	});
     // Add keyup event listeners to our input autocomplete elements
@@ -309,6 +342,21 @@ function enableCreateButton(){
 	});
 }
 
+function ignorePredecessorJob(edgeID,jobName){
+	if (confirm("Are you SURE to ignore the dependency from "+jobName+"?")){
+		postIt( "JobsHandler.php", {action:9 ,edgeID: edgeID} ,function(response) {
+			loadPredecessorStates(actualEditJobID);
+		});
+	}
+}
+function acceptPredecessor(edgeID,jobName){
+	if (confirm("Are you SURE to accept the latest changes from "+jobName+"?")){
+		postIt( "JobsHandler.php", {action:10 ,edgeID: edgeID} ,function(response) {
+			loadPredecessorStates(actualEditJobID);
+		});
+	}
+}
+
 
 function postIt(url,data,success){
 $.ajax({
@@ -344,6 +392,7 @@ $.ajax({
       <td>{{ row.id }}</td>
       <td v-bind:bgcolor="row.color">{{ row.jobname }}</td>
      <td v-bind:bgcolor="row.color">{{ row.title }}</td>
+	<td><button v-bind:onclick="'ignorePredecessorJob(' + row.id + ',\u0022' + row.jobname + '\u0022);' ">{{ ignoreButtonText(row.state)}}</	<td><button v-bind:onclick="'acceptPredecessor(' + row.id + ',\u0022' + row.jobname + '\u0022);' " v-if="showAcceptButton(row.state)" >Accept</button></td>
       <td>{{ row.state }}</td>
      </tr>
   </table>

@@ -21,18 +21,15 @@ $data = $database->query(
 */
 
 if (true){
-$data = $database->select("joblist", [
-			"[>]workzone" => ["workzoneid" => "id"],
-			"[>]jobnames" => ["jobnameid" => "id"],
+		$data = $database->select("edgelist", [
+			"[>]joblist" => ["fromjobid" => "id"],
 		],
 		[
-			"joblist.id",
-			"jobnames.name",
-			"joblist.userid",
-			"joblist.state"
+			"joblist.state(jobstate)",
+			"edgelist.state",
 		],
 		[
-			"workzone.name[=]" => "customer.project"
+			"edgelist.id[=]" => 1
 		]);
 }else{
 

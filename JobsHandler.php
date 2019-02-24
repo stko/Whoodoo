@@ -134,6 +134,7 @@ class JobsHandler  {
 		$this->db->insert("changelog", [
 			"jobid" => $data["jobID"],
 			"timestamp" => time(),
+			"changetype" => 0,
 			"userid" => $userID,
 			"predecessorState" => $data["predecessorState"],
 			"validated" => $data["validated"],
@@ -168,6 +169,7 @@ class JobsHandler  {
 			"content"
 		], [
 			"jobid" => $jobID,
+			"changetype" => 0,
 			"ORDER" => ["timestamp" => "DESC"],
 		]);
 		return json_decode($data["content"]);
@@ -246,6 +248,85 @@ class JobsHandler  {
 		error_log($result);
 
 		return $res;
+	}
+	
+	/*
+	INSERT INTO whoodoo_statecodes VALUES(1,'Requested',"Gainsboro","#DCDCDC",0);
+INSERT INTO whoodoo_statecodes VALUES(2,'Done',"Lime","#00FF00",1);
+INSERT INTO whoodoo_statecodes VALUES(3,'In Work',"Aqua","#00FFFF",2);
+INSERT INTO whoodoo_statecodes VALUES(4,'Reworked',"Gold","#FFD700",3);
+INSERT INTO whoodoo_statecodes VALUES(5,'Unclear',"Orange","#FFA500",4);
+INSERT INTO whoodoo_statecodes VALUES(6,'Faulty',"OrangeRed","	#FF4500",5);
+INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
+
+	*/
+	
+	public function toggleJobPredecessorIgnoreState($edgeID){
+		$preJobState = $this->db->select("edgelist", [
+			"[>]joblist" => ["fromjobid" => "id"],
+		],
+		[
+			"joblist.state(jobstate)",
+			"edgelist.state",
+		],
+		[
+			"edgelist.id[=]" => $edgeID
+		]);
+		ob_start();
+		var_dump($preJobState);
+		$result = ob_get_clean();
+		error_log($result);
+
+		$jobState=$preJobState[0]["jobstate"];
+		$edgeState=$preJobState[0]["state"];
+		error_log("edgeID:".$edgeID);
+		
+		if ($edgeState==6){ //if ignore
+			$newState= 3; // reworked
+		}else{
+			$newState= 6; // ignored
+		}
+		error_log("old state:".$edgeState. "new state:" .$newState);
+		$data = $this->db->update("edgelist", [
+			"state" => $newState
+		], [
+			"id" => $edgeID
+		]);
+		error_log("Rows affected by the update:". $data->rowCount());
+		return true;
+	}
+	
+		
+	public function acceptPredecessor($edgeID){
+		$preJobState = $this->db->select("edgelist", [
+			"[>]joblist" => ["fromjobid" => "id"],
+		],
+		[
+			"joblist.state(jobstate)",
+			"edgelist.state",
+		],
+		[
+			"edgelist.id[=]" => $edgeID
+		]);
+		ob_start();
+		var_dump($preJobState);
+		$result = ob_get_clean();
+		error_log($result);
+
+		$jobState=$preJobState[0]["jobstate"];
+		$edgeState=$preJobState[0]["state"];
+
+
+		error_log("job state:".$jobState. "edge state:" .$edgeState);
+
+		$data = $this->db->update("edgelist", [
+			"state" => $jobState
+		], [
+			"id" => $edgeID
+		]);
+		error_log("Rows affected by the update:". $data->rowCount());
+
+		return true;
 	}
 	
 	
@@ -342,6 +423,22 @@ class JobsHandler  {
 				}
 				$jobID = $post['jobID'];
 				die('{"errorcode":0, "data": '.json_encode($this->getJobPredecessorStates($jobID)).'}');
+
+			}
+			if ($action==9){ //toggle ignore Predecessor job
+				if (!isset($post['edgeID']) ){
+					die('{"errorcode":1, "error": "Variable Error"}');
+				}
+				$edgeID = $post['edgeID'];
+				die('{"errorcode":0, "data": '.json_encode($this->toggleJobPredecessorIgnoreState($edgeID)).'}');
+			}
+			
+			if ($action==10){ //Accept Predecessor job
+				if (!isset($post['edgeID']) ){
+					die('{"errorcode":1, "error": "Variable Error"}');
+				}
+				$edgeID = $post['edgeID'];
+				die('{"errorcode":0, "data": '.json_encode($this->acceptPredecessor($edgeID)).'}');
 
 			}
 			
