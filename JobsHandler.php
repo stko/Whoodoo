@@ -65,7 +65,6 @@ class JobsHandler  {
 	public function createJobName($job){
 		$id=$this->getJobNameID($job);
 		if ($id===false){
-			error_log("Create jobname $job");
 			$this->db->insert("jobnames", [
 				"name" => $job
 			]);
@@ -90,6 +89,7 @@ class JobsHandler  {
 				"userid" => 1,
 				"title" => $title,
 				"content" => $content,
+				"validated" => 0,
 				"state" => 0
 			]);
 			return $this->db->id();
@@ -121,8 +121,6 @@ class JobsHandler  {
 	}
 
 	public function storeUserEntry($data,$userID){
-		//error_log($strData);
-		//$data=json_decode($strData);
 		if (!isset($data["jobID"]) 
 		or !isset($data["predecessorState"])
 		or !isset($data["validated"])
@@ -131,6 +129,38 @@ class JobsHandler  {
 		){
 			die('{"errorcode":1, "error": "Variable Error"}');
 		}
+		$values = $this->db->select("joblist", [
+			"workzoneid",
+			"state"
+			], [
+			"id[=]" => $jobID
+		]);
+		$wzID=$values[0]["workzoneid"];
+		$oldState=$values[0]["state"];
+		$newState=$data["state"];
+		if ($data["validated"]){
+			$newState=1;
+		}
+		error_log("old state is ".$oldState." new Sate is ".$newState);
+		if ($oldState!=$newState){
+			$values = $this->db->update("edgelist", [
+					"state" => $newState
+				], [
+				"workzoneid[=]" => $wzID,
+				"fromjobid[=]" => $data["jobID"]
+			]);
+
+			
+			$values = $this->db->update("joblist", [
+					"state" => $newState
+				], [
+				"workzoneid[=]" => $wzID,
+				"id[=]" => $data["jobID"]
+			]);
+
+		}
+		
+		
 		$this->db->insert("changelog", [
 			"jobid" => $data["jobID"],
 			"timestamp" => time(),
@@ -209,16 +239,9 @@ class JobsHandler  {
 			"workzone.name[=]" => $wzName
 		]);
 		foreach($jobs as $key => $job){
-			error_log($job["title"]);
-
 			$jobs[$key]["text"]=$job["title"]."\n".$job["firstname"]." ".$job["lastname"]."\n[".$job["text"]."]";
 		}
 		$res=[ "nodes" => $jobs , "links" => $edges];
-		ob_start();
-		var_dump($res);
-		$result = ob_get_clean();
-		error_log($result);
-
 		return $res;
 	}
 	
@@ -242,11 +265,6 @@ class JobsHandler  {
 		]);
 
 		$res=[ "jobPredecessorStateTable" => $edges];
-		ob_start();
-		var_dump($res);
-		$result = ob_get_clean();
-		error_log($result);
-
 		return $res;
 	}
 	
@@ -261,38 +279,189 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 
 	*/
 	
+	public function  calculateNewJobState($old,$new){
+		$lookup=[
+			// Requested
+			0 => [
+				0 => 0,
+				1 => 0,
+				2 => 0,
+				3 => 0,
+				4 => 0,
+				5 => 0,
+				6 => 0
+			],
+			// Done
+			1 => [
+				0 => 1,
+				1 => 1,
+				2 => 1,
+				3 => 4,
+				4 => 4,
+				5 => 4,
+				6 => 1
+			],
+			// in Work
+			2 => [
+				0 => 2,
+				1 => 2,
+				2 => 2,
+				3 => 2,
+				4 => 2,
+				5 => 2,
+				6 => 2
+			],
+			// Reworked
+			3 => [
+				0 => 3,
+				1 => 3,
+				2 => 3,
+				3 => 3,
+				4 => 4,
+				5 => 4,
+				6 => 4
+			],
+			// Unclear
+			4 => [
+				0 => 0,
+				1 => 4,
+				2 => 2,
+				3 => 4,
+				4 => 4,
+				5 => 4,
+				6 => 4
+			],
+			//Faulty
+			5 => [
+				0 => 5,
+				1 => 5,
+				2 => 5,
+				3 => 5,
+				4 => 5,
+				5 => 5,
+				6 => 5
+			],
+			// Ignore
+			6 => [
+				0 => 0,
+				1 => 1,
+				2 => 2,
+				3 => 3,
+				4 => 4,
+				5 => 5,
+				6 => 6
+			],
+		];
+		return $lookup[$old][$new];
+	}
+	
+	public function updateJobTree(&$model,$jobArray){
+		foreach ($jobArray as $jobID){
+			$oldJobState=$model["jobs"][$jobID]["state"];
+			$newJobState=$model["jobs"][$jobID]["state"];
+			foreach($model["edges"] as $edge){
+				if ($edge["tojobid"]==$jobID){
+					$newJobState=$this->calculateNewJobState($newJobState,$edge["tojobid"]);
+				}
+			}
+			if ($oldJobState!=$newJobState){
+				$model["jobs"][$jobID]["state"]=$newJobState;
+				$model["jobs"][$jobID]["new"]=true;
+				$affectedJobs=[];
+				foreach($model["edges"] as $id => $edge){
+					if ($edge["fromjobid"]==$jobID){
+						$oldEgdeState=$edge["state"];
+						$newEgdeState=$this->calculateNewJobState($oldEgdeState,$newJobState);
+						if ($oldEgdeState!=$newEgdeState){
+							if (in_array($edge["fromjobid"],$affectedJobs)){
+								$affectedJobs[]=$edge["fromjobid"];
+							}
+							$model["edges"][$id]["state"]=$newEgdeState;
+							$model["edges"][$id]["new"]=true;
+						}
+					}
+				}
+				$this->updateJobTree($model,$affectedJobs);
+			}
+		}
+	}
+
+	
+	public function updateModelState($workzoneid,$newStateJob){
+		$jobs = $this->db->select("joblist", 
+			[
+				"joblist.id",
+				"joblist.state"
+			],
+			[
+				"workzoneid" => $workzoneid
+			]
+		);
+		$edges = $this->db->select("edgelist", 
+			[
+				"edgelist.id",
+				"edgelist.fromjobid",
+				"edgelist.tojobid",
+				"edgelist.state"
+			],
+			[
+				"workzoneid" => $workzoneid
+			]
+		);
+		$sortedJobs=[];
+		foreach($jobs as $job){//sort by index for better processing
+			$sortedJobs[$job["id"]]=[];
+			$sortedJobs[$job["id"]]["state"]=$job["state"];
+		}
+		$model=[ "jobs" => $sortedJobs , "edges" => $edges];
+		$this->updateJobTree($model,[$newStateJob]);
+		ob_start();
+		var_dump($model);
+		$result = ob_get_clean();
+		error_log($result);
+		foreach($model["jobs"] as $jobID){
+			if (isset($model["jobs"][$jobID]["new"])){
+				error_log("job ".$jobID." state changed to ".$model["jobs"][$jobID]["state"]);
+			}
+		}
+		foreach($model["edges"] as $edgeID => $edge){
+			if (isset($model["edges"][$edgeID]["new"])){
+				error_log("edge ".$edgeID." state changed to ".$model["edges"][$edgeID]["state"]);
+			}
+		}
+		return true;
+	}
+
+	
 	public function toggleJobPredecessorIgnoreState($edgeID){
 		$preJobState = $this->db->select("edgelist", [
 			"[>]joblist" => ["fromjobid" => "id"],
 		],
 		[
 			"joblist.state(jobstate)",
+			"edgelist.tojobid",
+			"edgelist.workzoneid",
 			"edgelist.state",
 		],
 		[
 			"edgelist.id[=]" => $edgeID
 		]);
-		ob_start();
-		var_dump($preJobState);
-		$result = ob_get_clean();
-		error_log($result);
-
 		$jobState=$preJobState[0]["jobstate"];
 		$edgeState=$preJobState[0]["state"];
-		error_log("edgeID:".$edgeID);
+		$newStateJob=$preJobState[0]["tojobid"];
+		$workzoneid=$preJobState[0]["workzoneid"];
 		
 		if ($edgeState==6){ //if ignore
 			$newState= 3; // reworked
 		}else{
 			$newState= 6; // ignored
 		}
-		error_log("old state:".$edgeState. "new state:" .$newState);
 		$data = $this->db->update("edgelist", [
 			"state" => $newState
 		], [
 			"id" => $edgeID
 		]);
-		error_log("Rows affected by the update:". $data->rowCount());
+		$this->updateModelState($workzoneid,$newStateJob);
 		return true;
 	}
 	
@@ -303,29 +472,23 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 		],
 		[
 			"joblist.state(jobstate)",
+			"edgelist.tojobid",
 			"edgelist.state",
+			"edgelist.workzoneid",
 		],
 		[
 			"edgelist.id[=]" => $edgeID
 		]);
-		ob_start();
-		var_dump($preJobState);
-		$result = ob_get_clean();
-		error_log($result);
-
 		$jobState=$preJobState[0]["jobstate"];
 		$edgeState=$preJobState[0]["state"];
-
-
-		error_log("job state:".$jobState. "edge state:" .$edgeState);
-
+		$newStateJob=$preJobState[0]["tojobid"];
+		$workzoneid=$preJobState[0]["workzoneid"];
 		$data = $this->db->update("edgelist", [
 			"state" => $jobState
 		], [
 			"id" => $edgeID
 		]);
-		error_log("Rows affected by the update:". $data->rowCount());
-
+		$this->updateModelState($workzoneid,$newStateJob);
 		return true;
 	}
 	
@@ -361,14 +524,8 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 				if (!$this->jt->jobExists($jobName)){
 					die('{"errorcode":0, "data": false, "error": "Job not exists"}');
 				}
-				error_log("Create...");
 				$wzID=$this->wz->createWorkZone($wzName);
-				error_log("Created id: $wzID");
 				$toDo=$this->jt->getAllDependencies($jobName);
-				ob_start();
-				var_dump($toDo);
-				$result = ob_get_clean();
-				error_log($result);
 				$jobIDs=array();
 				foreach ($toDo as $successorJobName => $childs){
 					$toJobID=$this->createJob($wzID,$successorJobName,$this->jt->getJobTitle($successorJobName),json_encode($this->jt->getJobContent($successorJobName)));

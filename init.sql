@@ -24,6 +24,7 @@ CREATE TABLE whoodoo_joblist (
 			userid INTEGER NOT NULL,
 			title VARCHAR( 200 ) NOT NULL,
 			content TEXT,
+			validated INTEGER NOT NULL,
 			state INTEGER NOT NULL);
 CREATE TABLE whoodoo_edgelist (
 			id INTEGER PRIMARY KEY, 

@@ -260,7 +260,7 @@ $( function(){
 			"predecessorState" : 0,
 			"validated" : validateEditor(values) ? 1 : 0 ,
 			"content" : values ,
-			"state"  : 1 //state
+			"state"  : validateEditor(values) ? 1 : 2
 			}
 		}
 		 console.log(values);

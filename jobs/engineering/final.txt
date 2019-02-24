@@ -25,6 +25,11 @@ the Form schema ([[https://rawgit.com/json-editor/json-editor/master/docs/demo.h
 {
 	"type":"object",
 	"title":"Car",
+	 "required": [
+    "make",
+    "model",
+    "year"
+  ],
 	"properties":{
 		"make":{
 			"type":"string",
@@ -65,17 +70,9 @@ the Form schema ([[https://rawgit.com/json-editor/json-editor/master/docs/demo.h
 				2014
 			],
 			"default":2008
-		},
-		"safety":{
-			"type":"integer",
-			"format":"rating",
-			"maximum":"5",
-			"exclusiveMaximum":false,
-			"readonly":false
 		}
 	}
 }
-
 
 </code>
 
