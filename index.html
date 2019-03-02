@@ -1,417 +1,102 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Whoodoo - Who's doing it?</title>
-  <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-  <link rel="stylesheet" href="/resources/demos/style.css">
-  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
-  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-  <!-- https://gojs.net/latest/index.html -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.0.3/go-debug.js"></script>
-  <!-- https://github.com/json-editor/json-editor -->
-  <script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>
-  <script>
-  $( function() {
-    $( "#tabs" ).tabs();
-  } );
-  </script>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Whoodoo - Who's doing it?</title>
+	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+	<link rel="stylesheet" href="whoodoo.css">
+	<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+	<!-- https://gojs.net/latest/index.html -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.0.3/go-debug.js"></script>
+	<!-- https://github.com/json-editor/json-editor -->
+	<script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>
+	<script src="https://unpkg.com/vue@2.2.4/dist/vue.js"></script>
+	<script src="whoodoo.js"></script>
 </head>
+
 <body>
- 
-<div id="tabs">
-  <ul>
-    <li><a href="#tabs-1">Overwiew</a></li>
-    <li><a href="#tabs-2">Proin dolor</a></li>
-    <li><a href="#tabs-3">Aenean lacinia</a></li>
-  </ul>
-  <div id="tabs-1">
-  <div id="searchWZ">
-<label for="workzoneList">Work Zone</label>
-<input list="workzoneList" id="workzoneInput" autocomplete=off>
-<datalist id="workzoneList">
-</datalist>
-<button type="button" id="showWorkZone">Search</button>
 
-<br/>
-<label for="jobInput">New Job to start</label>
-<input list="jobList" id="jobInput" autocomplete=off>
-<datalist id="jobList">
-</datalist>
-<button type="button" id="createFlowButton" disabled="disabled">Create new Flow</button>
-<div id="wzOverview">
-  <table>
-    <tr v-for="row in workZoneTable">
-      <td><a v-bind:href=" 'javascript:showWorkZoneByName(\u0022' + row.name + '\u0022);' ">{{ row.name }}</a></td><td>{{ row.count }}</td>
-    </tr>
-  </table>
-</div>
+	<div id="tabs">
+		<ul>
+			<li><a href="#tabs-1">Overwiew</a></li>
+			<li><a href="#tabs-2">Proin dolor</a></li>
+			<li><a href="#tabs-3">Aenean lacinia</a></li>
+		</ul>
+		<div id="tabs-1">
+			<div id="searchWZ">
+				<label for="workzoneList">Work Zone</label>
+				<input list="workzoneList" id="workzoneInput" autocomplete=off>
+				<datalist id="workzoneList">
+				</datalist>
+				<button type="button" id="showWorkZone">Search</button>
 
-<script src="https://unpkg.com/vue@2.2.4/dist/vue.js"></script>
-<script>
-'use strict';
+				<br />
+				<label for="jobInput">New Job to start</label>
+				<input list="jobList" id="jobInput" autocomplete=off>
+				<datalist id="jobList">
+				</datalist>
+				<button type="button" id="createFlowButton" disabled="disabled">Create new Flow</button>
+				<div id="wzOverview">
+					<table>
+						<tr v-for="row in workZoneTable">
+							<td><a v-bind:href=" 'javascript:showWorkZoneByName(\u0022' + row.name + '\u0022);' ">{{ row.name }}</a>
+							</td>
+							<td>{{ row.count }}</td>
+						</tr>
+					</table>
+				</div>
 
-
-
-var myDiagram;
-var jsonEditor;
-var actualEditJobID;
-var actualWorkzoneName;
-var wzOverview;
-var jobPredecessorState;
+				<div id="sample">
 
 
-function validateEditor(values){
-	var isValid=true;
-	$.each(values, function( index, value ) {
-		console.log(value);
-		switch (typeof value) {
-			case "boolean":
-			if (value==false){
-				isValid=false
-				console.log("fails on bool");
-			}
-			break;
-			case "number":
-			if (value==0){
-				isValid=false
-				console.log("fails on number");
-			}
-			break;
-			case "string":
-			if (value==""){
-				isValid=false
-				console.log("fails on string");
-			}
-			break;
-			default:
-				isValid=false
-				console.log("fails on "+(typeof value));
-		}
-	});
-	console.log("is valid:"+isValid);
-	console.log(values);
-	return isValid;
-}
-
-
-function loadPredecessorStates(jobID){
-	// read the precessor table
-	postIt( "JobsHandler.php", {action:8 ,jobID: jobID } ,function(response) {
-		console.log(response.schema);
-		jobPredecessorState.jobPredecessorStates=response.jobPredecessorStateTable;
-
-	});
-}
-
-function openEditor(jobID){
-	// read the precessor table
-	loadPredecessorStates(jobID);
-	postIt( "JobsHandler.php", {action:5 ,jobID: jobID } ,function(response) {
-		console.log(response.schema);
-		actualEditJobID=jobID;
-		if (jsonEditor){
-			jsonEditor.destroy();
-		}
-		jsonEditor = new JSONEditor(document.getElementById('editJob'),{
-			schema: response.schema,
-			disable_collapse : true ,
-			disable_edit_json	 : true ,
-			disable_properties : true      
-		});
-		jsonEditor.on('change',function(){
-			var values=jsonEditor.getValue();
-			 validateEditor(values);
-		});
-		postIt( "JobsHandler.php", {action:7 ,jobID: jobID } ,function(response) {
-			jsonEditor.setValue(response);
-		});
-	});
-}
-
-
-function gotoWorkZoneByName(wzName){
-	postIt( "JobsHandler.php", {action:3 ,wzName: wzName } ,function(response) {
-		wzOverview.workZoneTable=response;
-	});
-	showWorkZoneByName(wzName);
-}
-
-function showWorkZoneByName(wzName){
-	postIt( "JobsHandler.php", {action:4 ,wzName: wzName } ,function(response) {
-		//alert("häh?");
-		myDiagram.model = new go.GraphLinksModel(response["nodes"], response["links"]);
-		actualWorkzoneName=wzName;
-	});
-}
-
-$( function(){
-	wzOverview= new Vue({
-		el: '#wzOverview',
-		data: {
-			workZoneTable: []
-		}
-		});
-
-	jobPredecessorState= new Vue({
-		el: '#jobPredecessorState',
-		data: {
-			jobPredecessorStates: []
-		},
-		methods: {
-			// a computed getter
-			ignoreButtonText: function (state) {
-				// `this` points to the vm instance
-				console.log("ignoreButtonText state:",state);
-				switch (state) {
-					case "6":
-						return "Use";
-						break;
-
-					default:
-						return "Ignore";
-				}
-			},
-			showAcceptButton: function (state) {
-				// `this` points to the vm instance
-				console.log("showAcceptButton state:",state);
-				switch (state) {
-					case "3":
-						return true;
-						break;
-
-					default:
-						return false;
-				}
-			}
-		}
-	});
-    // Add keyup event listeners to our input autocomplete elements
-	$('#workzoneInput').keyup( function(event){listLookup(event,document.getElementById('workzoneList'),"WorkZones.php",{action:1})});
-	$('#workzoneInput').change( function(event){gotoWorkZoneByName($('#workzoneInput').val())});
-	$('#jobInput').keyup( function(event){
-		listLookup(event,document.getElementById('jobList'),"JobTemplates.php",{action:1})
-	}).keydown(function( event ) {
-		if ( event.which == 13 ) {
-			event.preventDefault();
-			gotoWorkZoneByName($('#workzoneInput').val());
-		}
-	});
-	$( "#showWorkZone" ).click(function() {
-		gotoWorkZoneByName($('#workzoneInput').val());
-	});
-	$( "#createFlowButton" ).click(function() {
-		postIt( "JobsHandler.php", {action:2 ,wzName: $('#workzoneInput').val(), jobName:$('#jobInput').val()} ,function(response) {
-		gotoWorkZoneByName(response.workzonename);
-		});
-	});
-	
-	 var $$ = go.GraphObject.make;  // for conciseness in defining templates, avoid $ due to jQuery
-    myDiagram = $$(go.Diagram, "myDiagramDiv",  // create a Diagram for the DIV HTML element
-                   {
-                     "undoManager.isEnabled": true  // enable undo & redo
-                   });
-    // define a simple Node template
-    myDiagram.nodeTemplate =
-      $$(go.Node, "Auto",  // the Shape will go around the TextBlock
-        $$(go.Shape, "RoundedRectangle", { strokeWidth: 0},
-          // Shape.fill is bound to Node.data.color
-         new go.Binding("fill", "color")
-         ),
-        $$(go.TextBlock,
-          { margin: 8 },  // some room around the text
-          // TextBlock.text is bound to Node.data.key
-          new go.Binding("text", "text"))
-      );
-
-    myDiagram.toolManager.clickSelectingTool.standardMouseSelect = function() {
-      var diagram = this.diagram;
-      if (diagram === null || !diagram.allowSelect) return;
-      var e = diagram.lastInput;
-      if (!(e.control || e.meta) && !e.shift) {
-        var part = diagram.findPartAt(e.documentPoint, false);
-        if (part !== null) {
-          var firstselected = null;  // is this or any containing Group selected?
-          var node = part;
-          while (node !== null) {
-            if (node.isSelected) {
-              firstselected = node;
-              break;
-            } else {
-              node = node.containingGroup;
-            }
-          }
-          if (firstselected !== null) { 
-			console.log(firstselected.kb.key);
-			openEditor(firstselected.kb.key);
-            return;
-          }
-        }
-      }
-      go.ClickSelectingTool.prototype.standardMouseSelect.call(this);
-    };
-	$( "#submitJsonEditor" ).click(function() {
-		var values=jsonEditor.getValue();
-		var res = {
-			"action" : 6,
-			"input" :
-			{
-			"jobID" : actualEditJobID,
-			"predecessorState" : 0,
-			"validated" : validateEditor(values) ? 1 : 0 ,
-			"content" : values ,
-			"state"  : validateEditor(values) ? 1 : 2
-			}
-		}
-		 console.log(values);
-		postIt( "JobsHandler.php", res ,function(response) {
-		 console.log("values saved on server");
-		 showWorkZoneByName(actualWorkzoneName);
-	});
-
-	});
-      
-           var jsondata={
-  "nodes":[
-{ "key": 1 , "text":"Alpha\nbla",   "color":"lightblue" },
-{ "key": 2 , "text":"Beta", "color":"orange" },
-{ "key": 3 , "text":"Gamma", "color":"lightgreen" },
-{ "key": 4 , "text":"Delta", "color":"pink" }
-  ],
-  "links":[
-{ "from": 1, "to": 2 },
-{ "from": 1, "to": 3 },
-{ "from": 2, "to": 2 },
-{ "from": 3, "to": 4 },
-{ "from" :4, "to": 1 }
-  ]
-};
-
-
-myDiagram.model = new go.GraphLinksModel(jsondata["nodes"], jsondata["links"]);
-
-
-      
-});
-
-
-
-// Autocomplete for form
-function listLookup(event,list,url,data) {
-	enableCreateButton();
-    // retireve the input element
-    var input = event.target;
-    // minimum number of characters before we start to generate suggestions
-    var min_characters = 3;
-    if (input.value.length < min_characters ) { 
-        return;
-    } else { 
-		data.query=input.value;
-        postIt( url, data ,function(response) {
-                // clear any previously loaded options in the datalist
-                list.innerHTML = "";
-                if (response){
-					response.forEach(function(item) {
-						// Create a new <option> element.
-						var option = document.createElement('option');
-						option.value = item;
-						// attach the option to the datalist element
-						list.appendChild(option);
-					});
-                }
-        });
-    }
-}
-
-function enableCreateButton(){
-	var wz=$('#workzoneInput').val();
-	if (wz.length<3){
-		$("#createFlowButton").prop("disabled",true);
-		return;
-	}
-	var job=$('#jobInput').val();
-	if (job.length<3){
-		$("#createFlowButton").prop("disabled",true);
-		return;
-	}
-	postIt( "JobsHandler.php", {action:1 ,wzName: wz, jobName:job} ,function(response) {
-		if (response){
-			$("#createFlowButton").prop("disabled",false);
-		}else{
-			$("#createFlowButton").prop("disabled",true);
-		}
-	});
-}
-
-function ignorePredecessorJob(edgeID,jobName){
-	if (confirm("Are you SURE to ignore the dependency from "+jobName+"?")){
-		postIt( "JobsHandler.php", {action:9 ,edgeID: edgeID} ,function(response) {
-			loadPredecessorStates(actualEditJobID);
-		});
-	}
-}
-function acceptPredecessor(edgeID,jobName){
-	if (confirm("Are you SURE to accept the latest changes from "+jobName+"?")){
-		postIt( "JobsHandler.php", {action:10 ,edgeID: edgeID} ,function(response) {
-			loadPredecessorStates(actualEditJobID);
-		});
-	}
-}
-
-
-function postIt(url,data,success){
-$.ajax({
-        type: 'post',
-        url: url,
-        data: data,
-        dataType: 'json'
-        }).done(function( data ) {
-		if (data.errorcode!==0){
-			alert(data.error);
-			return;
-		}
-
-    success(data.data);
-  });
-}
-
-</script>
-    <div id="sample">
-
-
-  <!-- The DIV for the Diagram needs an explicit size or else we won't see anything.
+					<!-- The DIV for the Diagram needs an explicit size or else we won't see anything.
        Also add a border to help see the edges. -->
-  <div id="myDiagramDiv" style="border: solid 1px black; width:90%; height:400px"></div>
+					<div id="myDiagramDiv" style="border: solid 1px black; width:90%; height:400px"></div>
 
-</div>
-  </div>
-  </div>
-  <div id="editdiv">
-    <div id="jobPredecessorState">
-  <table>
-    <tr v-for="row in jobPredecessorStates">
-      <td>{{ row.id }}</td>
-      <td v-bind:bgcolor="row.color">{{ row.jobname }}</td>
-     <td v-bind:bgcolor="row.color">{{ row.title }}</td>
-	<td><button v-bind:onclick="'ignorePredecessorJob(' + row.id + ',\u0022' + row.jobname + '\u0022);' ">{{ ignoreButtonText(row.state)}}</	<td><button v-bind:onclick="'acceptPredecessor(' + row.id + ',\u0022' + row.jobname + '\u0022);' " v-if="showAcceptButton(row.state)" >Accept</button></td>
-      <td>{{ row.state }}</td>
-     </tr>
-  </table>
-</div>
-  <div id="editJob">
-  </div>
-      <button id='submitJsonEditor'>Submit (console.log)</button>
-  </div>
-  <div id="tabs-2">
-bla
-  </div>
-  <div id="tabs-3">
-    <p>Mauris eleifend est et turpis. Duis id erat. Suspendisse potenti. Aliquam vulputate, pede vel vehicula accumsan, mi neque rutrum erat, eu congue orci lorem eget lorem. Vestibulum non ante. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Fusce sodales. Quisque eu urna vel enim commodo pellentesque. Praesent eu risus hendrerit ligula tempus pretium. Curabitur lorem enim, pretium nec, feugiat nec, luctus a, lacus.</p>
-    <p>Duis cursus. Maecenas ligula eros, blandit nec, pharetra at, semper at, magna. Nullam ac lacus. Nulla facilisi. Praesent viverra justo vitae neque. Praesent blandit adipiscing velit. Suspendisse potenti. Donec mattis, pede vel pharetra blandit, magna ligula faucibus eros, id euismod lacus dolor eget odio. Nam scelerisque. Donec non libero sed nulla mattis commodo. Ut sagittis. Donec nisi lectus, feugiat porttitor, tempor ac, tempor vitae, pede. Aenean vehicula velit eu tellus interdum rutrum. Maecenas commodo. Pellentesque nec elit. Fusce in lacus. Vivamus a libero vitae lectus hendrerit hendrerit.</p>
-  </div>
-</div>
- 
- 
+				</div>
+			</div>
+		</div>
+		<div id="editdiv">
+			<div id="jobPredecessorState">
+				<table>
+					<tr v-for="row in jobPredecessorStates">
+						<td>{{ row.id }}</td>
+						<td v-bind:bgcolor="row.color">{{ row.jobname }}</td>
+						<td v-bind:bgcolor="row.color">{{ row.title }}</td>
+						<td><button
+								v-bind:onclick="'ignorePredecessorJob(' + row.id + ',\u0022' + row.jobname + '\u0022);' ">{{ ignoreButtonText(row.state)}}
+								</ <td><button v-bind:onclick="'acceptPredecessor(' + row.id + ',\u0022' + row.jobname + '\u0022);' "
+									v-if="showAcceptButton(row.state)">Accept</button></td>
+						<td>{{ row.state }}</td>
+					</tr>
+				</table>
+			</div>
+			<div id="editJob">
+			</div>
+			<button id='submitJsonEditor'>Submit (console.log)</button>
+		</div>
+		<div id="tabs-2">
+			bla
+		</div>
+		<div id="tabs-3">
+			<p>Mauris eleifend est et turpis. Duis id erat. Suspendisse potenti. Aliquam vulputate, pede vel vehicula
+				accumsan, mi neque rutrum erat, eu congue orci lorem eget lorem. Vestibulum non ante. Class aptent taciti
+				sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Fusce sodales. Quisque eu urna vel enim
+				commodo pellentesque. Praesent eu risus hendrerit ligula tempus pretium. Curabitur lorem enim, pretium nec,
+				feugiat nec, luctus a, lacus.</p>
+			<p>Duis cursus. Maecenas ligula eros, blandit nec, pharetra at, semper at, magna. Nullam ac lacus. Nulla facilisi.
+				Praesent viverra justo vitae neque. Praesent blandit adipiscing velit. Suspendisse potenti. Donec mattis, pede
+				vel pharetra blandit, magna ligula faucibus eros, id euismod lacus dolor eget odio. Nam scelerisque. Donec non
+				libero sed nulla mattis commodo. Ut sagittis. Donec nisi lectus, feugiat porttitor, tempor ac, tempor vitae,
+				pede. Aenean vehicula velit eu tellus interdum rutrum. Maecenas commodo. Pellentesque nec elit. Fusce in lacus.
+				Vivamus a libero vitae lectus hendrerit hendrerit.</p>
+		</div>
+	</div>
+
+
 </body>
+
 </html>
