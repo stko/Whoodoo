@@ -85,7 +85,7 @@ function openEditor(jobID) {
 }
 
 
-function gotoWorkZoneByName(wzName) {
+function gotoWorkZoneByName(wzName,data=null) {
 	postIt("JobsHandler.php", { action: 3, wzName: wzName }, function (response) {
 		wzOverview.workZoneTable = response;
 	});
@@ -96,7 +96,13 @@ function showWorkZoneByName(wzName) {
 	postIt("JobsHandler.php", { action: 4, wzName: wzName }, function (response) {
 		//alert("häh?");
 		myDiagram.model = new go.GraphLinksModel(response["nodes"], response["links"]);
+		if (response["nodes"].length>0){
 		actualWorkzoneName = wzName;
+		wzOverview.workzoneName = wzName;
+		}else{
+			actualWorkzoneName = "";
+			wzOverview.workzoneName = "";	
+		}
 	});
 }
 
@@ -105,7 +111,7 @@ $(function () {
 		el: '#wzOverview',
 		data: {
 			workZoneTable: [],
-			valid: true
+			workzoneName:""
 		}
 	});
 
@@ -180,7 +186,7 @@ $(function () {
 	});
 	$("#createFlowButton").click(function () {
 		postIt("JobsHandler.php", { action: 2, wzName: $('#workzoneInput').val(), jobName: $('#jobInput').val() }, function (response) {
-			gotoWorkZoneByName(response.workzonename);
+			gotoWorkZoneByName(response.workzonename,response);
 		});
 	});
 

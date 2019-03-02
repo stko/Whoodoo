@@ -25,43 +25,43 @@
 			<li><a href="#tabs-2">Proin dolor</a></li>
 			<li><a href="#tabs-3">Aenean lacinia</a></li>
 		</ul>
+		<!-- Tab 1-->
 		<div id="tabs-1">
+			<!-- Search Area-->
 			<div id="searchWZ">
 				<label for="workzoneList">Work Zone</label>
-				<input list="workzoneList" id="workzoneInput" autocomplete=off>
-				<datalist id="workzoneList">
-				</datalist>
+				<input id="workzoneInput">
 				<button type="button" id="showWorkZone">Search</button>
 				<span style="float: right;">
-					<label for="jobInput">New Job to start</label>
-					<input list="jobList" id="jobInput" autocomplete=off>
-					<datalist id="jobList">
-					</datalist>
+					<label for="jobInput">New Job Flow</label>
+					<input id="jobInput">
 					<button type="button" id="createFlowButton" disabled="disabled">Create new Flow</button>
 				</span>
 				<br>
 				<div id="wzOverview">
-					<template v-if="valid">
-						<h1>Title</h1>
-						<p>Paragraph 1</p>
-						<p>Paragraph 2</p>
+					<template v-if="workZoneTable.length>0">
+						Workzones matching your Search:
+						<table>
+							<tr v-for="row in workZoneTable">
+								<td><a
+										v-bind:href=" 'javascript:showWorkZoneByName(\u0022' + row.name + '\u0022);' ">{{ row.name }}</a>
+								</td>
+								<td>{{ row.count }}</td>
+							</tr>
+						</table>
 					</template>
-					<table>
-						<tr v-for="row in workZoneTable">
-							<td><a
-									v-bind:href=" 'javascript:showWorkZoneByName(\u0022' + row.name + '\u0022);' ">{{ row.name }}</a>
-							</td>
-							<td>{{ row.count }}</td>
-						</tr>
-					</table>
+					<template v-if="workzoneName!=''">
+						<hr />
+						{{workzoneName}}
+					</template>
 				</div>
 
-				<div id="sample">
+				<div id="Diagram">
 
 
 					<!-- The DIV for the Diagram needs an explicit size or else we won't see anything.
        Also add a border to help see the edges. -->
-					<div id="myDiagramDiv" style="border: solid 1px black; width:90%; height:400px"></div>
+					<div id="myDiagramDiv" style="border: solid 1px black; width:98%; height:400px"></div>
 
 				</div>
 			</div>
