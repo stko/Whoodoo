@@ -12,6 +12,8 @@ var actualEditJobID;
 var actualWorkzoneName;
 var wzOverview;
 var jobPredecessorState;
+var showValidWz;
+var showValidJob;
 
 
 function validateEditor(values) {
@@ -102,7 +104,8 @@ $(function () {
 	wzOverview = new Vue({
 		el: '#wzOverview',
 		data: {
-			workZoneTable: []
+			workZoneTable: [],
+			valid: true
 		}
 	});
 
@@ -140,16 +143,38 @@ $(function () {
 		}
 	});
 	// Add keyup event listeners to our input autocomplete elements
-	$('#workzoneInput').keyup(function (event) { listLookup(event, document.getElementById('workzoneList'), "WorkZones.php", { action: 1 }) });
-	$('#workzoneInput').change(function (event) { gotoWorkZoneByName($('#workzoneInput').val()) });
-	$('#jobInput').keyup(function (event) {
-		listLookup(event, document.getElementById('jobList'), "JobTemplates.php", { action: 1 })
-	}).keydown(function (event) {
-		if (event.which == 13) {
-			event.preventDefault();
-			gotoWorkZoneByName($('#workzoneInput').val());
+
+	$('#workzoneInput').autocomplete({
+		source: function (request, response) {
+			postIt("WorkZones.php", { action: 1, query: request.term }, function (answer) {
+				response(answer);
+			});
+		},
+		minLength: 2,
+		select: function (event, ui) {
 		}
 	});
+	$('#workzoneInput').change(function () {
+		enableCreateButton();
+		gotoWorkZoneByName($('#workzoneInput').val());
+	});
+
+	$('#jobInput').autocomplete({
+		source: function (request, response) {
+			postIt("JobTemplates.php", { action: 1, query: request.term }, function (answer) {
+				response(answer);
+			});
+		},
+		minLength: 2,
+		select: function (event, ui) {
+		}
+	});
+	$('#jobInput').change(function () {
+		enableCreateButton();
+		gotoWorkZoneByName($('#workzoneInput').val());
+	});
+
+
 	$("#showWorkZone").click(function () {
 		gotoWorkZoneByName($('#workzoneInput').val());
 	});
@@ -247,34 +272,6 @@ $(function () {
 
 });
 
-
-
-// Autocomplete for form
-function listLookup(event, list, url, data) {
-	enableCreateButton();
-	// retireve the input element
-	var input = event.target;
-	// minimum number of characters before we start to generate suggestions
-	var min_characters = 3;
-	if (input.value.length < min_characters) {
-		return;
-	} else {
-		data.query = input.value;
-		postIt(url, data, function (response) {
-			// clear any previously loaded options in the datalist
-			list.innerHTML = "";
-			if (response) {
-				response.forEach(function (item) {
-					// Create a new <option> element.
-					var option = document.createElement('option');
-					option.value = item;
-					// attach the option to the datalist element
-					list.appendChild(option);
-				});
-			}
-		});
-	}
-}
 
 function enableCreateButton() {
 	var wz = $('#workzoneInput').val();
