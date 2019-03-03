@@ -1,19 +1,16 @@
-$(function () {
-	$("#tabs").tabs();
-});
-
 'use strict';
 
-
-
 var myDiagram;
-var jsonEditor;
 var actualEditJobID;
 var actualWorkzoneName;
 var wzOverview;
+var jobTimer;
+var bottomJsonEditor;
+var jsonEditor;
 var jobPredecessorState;
 var showValidWz;
 var showValidJob;
+var datepicker = $("#datepicker");
 
 
 function validateEditor(values) {
@@ -77,206 +74,46 @@ function openEditor(jobID) {
 		jsonEditor.on('change', function () {
 			var values = jsonEditor.getValue();
 			validateEditor(values);
+			$("#submitJsonEditor").prop("disabled", false);
 		});
 		postIt("JobsHandler.php", { action: 7, jobID: jobID }, function (response) {
 			jsonEditor.setValue(response);
 		});
+		switchElementVisibility(true);
 	});
 }
 
-
-function gotoWorkZoneByName(wzName,data=null) {
+function gotoWorkZoneByName(wzName, data = null) {
 	postIt("JobsHandler.php", { action: 3, wzName: wzName }, function (response) {
 		wzOverview.workZoneTable = response;
 	});
 	showWorkZoneByName(wzName);
 }
 
+function switchElementVisibility(visible) {
+	jobTimer.visible = visible;
+	jobPredecessorState.visible = visible;
+	bottomJsonEditor.visible = visible;
+}
+
 function showWorkZoneByName(wzName) {
 	postIt("JobsHandler.php", { action: 4, wzName: wzName }, function (response) {
 		//alert("häh?");
 		myDiagram.model = new go.GraphLinksModel(response["nodes"], response["links"]);
-		if (response["nodes"].length>0){
-		actualWorkzoneName = wzName;
-		wzOverview.workzoneName = wzName;
-		}else{
+		if (jsonEditor) {
+			jsonEditor.destroy();
+			switchElementVisibility(false);
+
+		}
+		if (response["nodes"].length > 0) {
+			actualWorkzoneName = wzName;
+			wzOverview.workzoneName = wzName;
+		} else {
 			actualWorkzoneName = "";
-			wzOverview.workzoneName = "";	
+			wzOverview.workzoneName = "";
 		}
 	});
 }
-
-$(function () {
-	wzOverview = new Vue({
-		el: '#wzOverview',
-		data: {
-			workZoneTable: [],
-			workzoneName:""
-		}
-	});
-
-	jobPredecessorState = new Vue({
-		el: '#jobPredecessorState',
-		data: {
-			jobPredecessorStates: []
-		},
-		methods: {
-			// a computed getter
-			ignoreButtonText: function (state) {
-				// `this` points to the vm instance
-				console.log("ignoreButtonText state:", state);
-				switch (state) {
-					case "6":
-						return "Use";
-						break;
-
-					default:
-						return "Ignore";
-				}
-			},
-			showAcceptButton: function (state) {
-				// `this` points to the vm instance
-				console.log("showAcceptButton state:", state);
-				switch (state) {
-					case "3":
-						return true;
-						break;
-
-					default:
-						return false;
-				}
-			}
-		}
-	});
-	// Add keyup event listeners to our input autocomplete elements
-
-	$('#workzoneInput').autocomplete({
-		source: function (request, response) {
-			postIt("WorkZones.php", { action: 1, query: request.term }, function (answer) {
-				response(answer);
-			});
-		},
-		minLength: 2,
-		select: function (event, ui) {
-		}
-	});
-	$('#workzoneInput').change(function () {
-		enableCreateButton();
-		gotoWorkZoneByName($('#workzoneInput').val());
-	});
-
-	$('#jobInput').autocomplete({
-		source: function (request, response) {
-			postIt("JobTemplates.php", { action: 1, query: request.term }, function (answer) {
-				response(answer);
-			});
-		},
-		minLength: 2,
-		select: function (event, ui) {
-		}
-	});
-	$('#jobInput').change(function () {
-		enableCreateButton();
-		gotoWorkZoneByName($('#workzoneInput').val());
-	});
-
-
-	$("#showWorkZone").click(function () {
-		gotoWorkZoneByName($('#workzoneInput').val());
-	});
-	$("#createFlowButton").click(function () {
-		postIt("JobsHandler.php", { action: 2, wzName: $('#workzoneInput').val(), jobName: $('#jobInput').val() }, function (response) {
-			gotoWorkZoneByName(response.workzonename,response);
-		});
-	});
-
-	var $$ = go.GraphObject.make;  // for conciseness in defining templates, avoid $ due to jQuery
-	myDiagram = $$(go.Diagram, "myDiagramDiv",  // create a Diagram for the DIV HTML element
-		{
-			"undoManager.isEnabled": true  // enable undo & redo
-		});
-	// define a simple Node template
-	myDiagram.nodeTemplate =
-		$$(go.Node, "Auto",  // the Shape will go around the TextBlock
-			$$(go.Shape, "RoundedRectangle", { strokeWidth: 0 },
-				// Shape.fill is bound to Node.data.color
-				new go.Binding("fill", "color")
-			),
-			$$(go.TextBlock,
-				{ margin: 8 },  // some room around the text
-				// TextBlock.text is bound to Node.data.key
-				new go.Binding("text", "text"))
-		);
-
-	myDiagram.toolManager.clickSelectingTool.standardMouseSelect = function () {
-		var diagram = this.diagram;
-		if (diagram === null || !diagram.allowSelect) return;
-		var e = diagram.lastInput;
-		if (!(e.control || e.meta) && !e.shift) {
-			var part = diagram.findPartAt(e.documentPoint, false);
-			if (part !== null) {
-				var firstselected = null;  // is this or any containing Group selected?
-				var node = part;
-				while (node !== null) {
-					if (node.isSelected) {
-						firstselected = node;
-						break;
-					} else {
-						node = node.containingGroup;
-					}
-				}
-				if (firstselected !== null) {
-					console.log(firstselected.kb.key);
-					openEditor(firstselected.kb.key);
-					return;
-				}
-			}
-		}
-		go.ClickSelectingTool.prototype.standardMouseSelect.call(this);
-	};
-	$("#submitJsonEditor").click(function () {
-		var values = jsonEditor.getValue();
-		var res = {
-			"action": 6,
-			"input":
-			{
-				"jobID": actualEditJobID,
-				"predecessorState": 0,
-				"validated": validateEditor(values) ? 1 : 0,
-				"content": values,
-				"state": validateEditor(values) ? 1 : 2
-			}
-		}
-		console.log(values);
-		postIt("JobsHandler.php", res, function (response) {
-			console.log("values saved on server");
-			showWorkZoneByName(actualWorkzoneName);
-		});
-
-	});
-
-	var jsondata = {
-		"nodes": [
-			{ "key": 1, "text": "Alpha\nbla", "color": "lightblue" },
-			{ "key": 2, "text": "Beta", "color": "orange" },
-			{ "key": 3, "text": "Gamma", "color": "lightgreen" },
-			{ "key": 4, "text": "Delta", "color": "pink" }
-		],
-		"links": [
-			{ "from": 1, "to": 2 },
-			{ "from": 1, "to": 3 },
-			{ "from": 2, "to": 2 },
-			{ "from": 3, "to": 4 },
-			{ "from": 4, "to": 1 }
-		]
-	};
-
-
-	myDiagram.model = new go.GraphLinksModel(jsondata["nodes"], jsondata["links"]);
-
-
-
-});
 
 
 function enableCreateButton() {
@@ -330,3 +167,252 @@ function postIt(url, data, success) {
 		success(data.data);
 	});
 }
+
+
+$(function () {
+
+
+	// ------------------------   Vue defines --------------------------------------
+
+	wzOverview = new Vue({
+		el: '#wzOverview',
+		data: {
+			workZoneTable: [],
+			workzoneName: ""
+		}
+	});
+
+	jobTimer = new Vue({
+		el: '#jobTimer',
+		methods: {
+			installDatePicker: function () {
+				$("#datepicker").datepicker({
+					showWeek: true,
+					firstDay: 1
+				});
+			}
+		},
+		data: {
+			isMileStone: true,
+			duration: 20,
+			endDate: new Date().toDateString(),
+			visible: true,
+			owner: "Klaus Mustermann",
+			notMine: true
+		},
+		mounted: function () {
+			this.$nextTick(function () {
+				// Code that will run only after the
+				// entire view has been rendered
+				this.installDatePicker();
+			})
+		},
+		updated: function () {
+			this.$nextTick(function () {
+				// Code that will run only after the
+				// entire view has been rendered
+				this.installDatePicker();
+			})
+		}
+	});
+
+	jobPredecessorState = new Vue({
+		el: '#jobPredecessorState',
+		data: {
+			jobPredecessorStates: [],
+			visible: true
+		},
+		methods: {
+			// a computed getter
+			ignoreButtonText: function (state) {
+				// `this` points to the vm instance
+				console.log("ignoreButtonText state:", state);
+				switch (state) {
+					case "6":
+						return "Use";
+						break;
+
+					default:
+						return "Ignore";
+				}
+			},
+			showAcceptButton: function (state) {
+				// `this` points to the vm instance
+				console.log("showAcceptButton state:", state);
+				switch (state) {
+					case "3":
+						return true;
+						break;
+
+					default:
+						return false;
+				}
+			}
+		}
+	});
+
+	bottomJsonEditor = new Vue({
+		el: '#bottomeditdiv',
+		data: {
+			visible: true
+		}
+	});
+
+	// ------------------------   jQuery defines --------------------------------------
+
+
+	$("#tabs").tabs();
+
+
+
+	// Add keyup event listeners to our input autocomplete elements
+
+	$('#workzoneInput').autocomplete({
+		source: function (request, response) {
+			postIt("WorkZones.php", { action: 1, query: request.term }, function (answer) {
+				response(answer);
+			});
+		},
+		minLength: 2,
+		select: function (event, ui) {
+		}
+	});
+	$('#workzoneInput').change(function () {
+		enableCreateButton();
+		gotoWorkZoneByName($('#workzoneInput').val());
+	});
+
+	$('#jobInput').autocomplete({
+		source: function (request, response) {
+			postIt("JobTemplates.php", { action: 1, query: request.term }, function (answer) {
+				response(answer);
+			});
+		},
+		minLength: 2,
+		select: function (event, ui) {
+		}
+	});
+	$('#jobInput').change(function () {
+		enableCreateButton();
+		gotoWorkZoneByName($('#workzoneInput').val());
+	});
+
+
+	$("#showWorkZone").click(function () {
+		gotoWorkZoneByName($('#workzoneInput').val());
+	});
+	$("#createFlowButton").click(function () {
+		postIt("JobsHandler.php", { action: 2, wzName: $('#workzoneInput').val(), jobName: $('#jobInput').val() }, function (response) {
+			gotoWorkZoneByName(response.workzonename, response);
+		});
+	});
+
+	/*
+	$("#datepicker").datepicker({
+		showWeek: true,
+		firstDay: 1
+	});
+	
+
+	datepicker.datepicker({
+		showWeek: true,
+		firstDay: 1
+	});
+*/
+
+	$("#submitJsonEditor").click(function () {
+		var values = jsonEditor.getValue();
+		var res = {
+			"action": 6,
+			"input":
+			{
+				"jobID": actualEditJobID,
+				"predecessorState": 0,
+				"validated": validateEditor(values) ? 1 : 0,
+				"content": values,
+				"state": validateEditor(values) ? 1 : 2
+			}
+		}
+		console.log(values);
+		postIt("JobsHandler.php", res, function (response) {
+			console.log("values saved on server");
+			showWorkZoneByName(actualWorkzoneName);
+		});
+
+	});
+
+
+
+	// ------------------------   The diagram --------------------------------------
+
+	var $$ = go.GraphObject.make;  // for conciseness in defining templates, avoid $ due to jQuery
+	myDiagram = $$(go.Diagram, "myDiagramDiv",  // create a Diagram for the DIV HTML element
+		{
+			"undoManager.isEnabled": true  // enable undo & redo
+		});
+	// define a simple Node template
+	myDiagram.nodeTemplate =
+		$$(go.Node, "Auto",  // the Shape will go around the TextBlock
+			$$(go.Shape, "RoundedRectangle", { strokeWidth: 0 },
+				// Shape.fill is bound to Node.data.color
+				new go.Binding("fill", "color")
+			),
+			$$(go.TextBlock,
+				{ margin: 8 },  // some room around the text
+				// TextBlock.text is bound to Node.data.key
+				new go.Binding("text", "text"))
+		);
+
+	myDiagram.toolManager.clickSelectingTool.standardMouseSelect = function () {
+		var diagram = this.diagram;
+		if (diagram === null || !diagram.allowSelect) return;
+		var e = diagram.lastInput;
+		if (!(e.control || e.meta) && !e.shift) {
+			var part = diagram.findPartAt(e.documentPoint, false);
+			if (part !== null) {
+				var firstselected = null;  // is this or any containing Group selected?
+				var node = part;
+				while (node !== null) {
+					if (node.isSelected) {
+						firstselected = node;
+						break;
+					} else {
+						node = node.containingGroup;
+					}
+				}
+				if (firstselected !== null) {
+					console.log(firstselected.kb.key);
+					openEditor(firstselected.kb.key);
+					return;
+				}
+			}
+		}
+		go.ClickSelectingTool.prototype.standardMouseSelect.call(this);
+	};
+
+	var jsondata = {
+		"nodes": [
+			{ "key": 1, "text": "Alpha\nbla", "color": "lightblue" },
+			{ "key": 2, "text": "Beta", "color": "orange" },
+			{ "key": 3, "text": "Gamma", "color": "lightgreen" },
+			{ "key": 4, "text": "Delta", "color": "pink" }
+		],
+		"links": [
+			{ "from": 1, "to": 2 },
+			{ "from": 1, "to": 3 },
+			{ "from": 2, "to": 2 },
+			{ "from": 3, "to": 4 },
+			{ "from": 4, "to": 1 }
+		]
+	};
+
+
+	myDiagram.model = new go.GraphLinksModel(jsondata["nodes"], jsondata["links"]);
+
+
+	// hide the elements at last, because jquery and vue can't initialize elements when they are invisible
+
+	switchElementVisibility(false);
+
+});
+
