@@ -6,6 +6,8 @@ require_once  'WorkZones.php';
 
 require_once  'JobTemplates.php';
 
+require_once  'login.php';
+
 require_once("Config.php");
 
 class JobsHandler  {
@@ -46,17 +48,16 @@ class JobsHandler  {
 	}
 	
 
-	public function getJobData($jobID) {
+	public function getJobSchema($jobID) {
 		$values = $this->db->select("joblist", [
-			"content",
+			"content"
 			], [
 			"id[=]" => $jobID
 		]);
 		if (empty($values)){
 			return "{}";
 		}else{
-			$json=json_decode($values[0]["content"]);
-			return $json->schema;
+			return json_decode($values[0]["content"]);
 		}
 	}
 	
@@ -75,6 +76,7 @@ class JobsHandler  {
 	}
 
 	public function createJob($wzID,$job,$title,$content){
+		global $actualUser;
 		$jobID=$this->createJobName($job);
 		$values = $this->db->select("joblist", [
 			"id",
@@ -83,15 +85,40 @@ class JobsHandler  {
 			"jobnameid[=]" => $jobID
 		]);
 		if (empty($values)){
-			$this->db->insert("joblist", [
+			$json=json_decode($content);
+			$data= [
 				"workzoneid" => $wzID,
 				"jobnameid" => $jobID,
-				"userid" => 1,
+				"ownerid" => $actualUser["id"],
 				"title" => $title,
 				"content" => $content,
 				"validated" => 0,
+				"startdate" => time(),
+				"enddate" => time(),
+				"duration" => $json->duration,
+				"ismilestone" => $json->isMileStone ? 1 : 0 ,
+				"state" => 0
+			];
+			ob_start();
+			var_dump($data);
+			$result = ob_get_clean();
+			error_log($result);
+/*
+			$this->db->insert("joblist", [
+				"workzoneid" => $wzID,
+				"jobnameid" => $jobID,
+				"userid" => $actualUser["id"],
+				"title" => $title,
+				"content" => $content,
+				"validated" => 0,
+				"startdate" => time(),
+				"enddate" => time(),
+				"duration" => $json->duration,
+				"ismilestone" => $json->isMileStone ? 1 : 0 ,
 				"state" => 0
 			]);
+*/
+			$this->db->insert("joblist", $data);
 			return $this->db->id();
 		}else{
 			return $values[0]["id"];
@@ -169,17 +196,37 @@ class JobsHandler  {
 
 		}
 		
+		$userInfo=$this->getJobOwnerInfo($data["jobID"]);
+		if ($userInfo!=NULL) {
+			$owner=$userInfo["id"];
+			error_log("Owner info".$owner);
+			ob_start();
+			var_dump($userInfo);
+			$result = ob_get_clean();
+			error_log($result);
+		} else {
+			$owner=$userID; 
+			error_log("KEINE Owner info".$owner);
+		}
 		
-		$this->db->insert("changelog", [
+
+		$pdoStatement=$this->db->insert("changelog", [
 			"jobid" => $data["jobID"],
 			"timestamp" => time(),
 			"changetype" => 0,
 			"userid" => $userID,
+			"jobowner" => $owner,
 			"predecessorState" => $data["predecessorState"],
 			"validated" => $data["validated"],
 			"content" => json_encode($data["content"]),
 			"state" => $data["state"]
 		]);
+		ob_start();
+		var_dump($pdoStatement->errorInfo());
+		$result = ob_get_clean();
+		error_log($result);
+
+
 	}
 
 	
@@ -203,7 +250,24 @@ class JobsHandler  {
 		}
 	}
 	
-	public function getUserEntry($jobID){
+	public function getJobOwnerInfo($jobID){
+		$data = $this->db->get("changelog", [
+			"[>]users" => ["jobowner" => "id"]
+		],
+		[
+			"users.firstname",
+			"users.lastname",
+			"users.id"
+		], [
+			"jobid" => $jobID,
+			"ORDER" => ["timestamp" => "DESC"],
+		]);
+		return $data;
+	}
+	
+	
+	public function getJobValues($jobID){
+		global $actualUser;
 		$data = $this->db->get("changelog", [
 			"content"
 		], [
@@ -211,7 +275,21 @@ class JobsHandler  {
 			"changetype" => 0,
 			"ORDER" => ["timestamp" => "DESC"],
 		]);
-		return json_decode($data["content"]);
+		ob_start();
+		var_dump($data);
+		$result = ob_get_clean();
+		error_log($result);
+
+		$userInfo=$this->getJobOwnerInfo($jobID);
+		$res=json_decode($data["content"]);
+		if ($userInfo!==FALSE){
+			$res->owner=$userInfo["firstname"]." ".$userInfo["lastname"];
+			$res->notmine=$userInfo["id"]==$actualUser["id"];
+		}else{
+			$res->owner=$actualUser["name"];
+			$res->notmine=false;
+		}
+		return $res;
 	}
 	
 	
@@ -219,7 +297,7 @@ class JobsHandler  {
 		$jobs = $this->db->select("joblist", [
 			"[>]workzone" => ["workzoneid" => "id"],
 			"[>]jobnames" => ["jobnameid" => "id"],
-			"[>]users" => ["userid" => "id"],
+			"[>]users" => ["ownerid" => "id"],
 			"[>]statecodes" => "state"
 		],
 		[
@@ -228,7 +306,7 @@ class JobsHandler  {
 			"statecodes.statecolorcode(color)",
 			"users.firstname",
 			"users.lastname",
-			"joblist.userid",
+			"joblist.ownerid",
 			"joblist.title",
 			"joblist.state"
 		],
@@ -247,8 +325,12 @@ class JobsHandler  {
 		[
 			"workzone.name[=]" => $wzName
 		]);
-		foreach($jobs as $key => $job){
-			$jobs[$key]["text"]=$job["title"]."\n".$job["firstname"]." ".$job["lastname"]."\n[".$job["text"]."]";
+		if ($jobs!==FALSE){
+			foreach($jobs as $key => $job){
+				$jobs[$key]["text"]=$job["title"]."\n".$job["firstname"]." ".$job["lastname"]."\n[".$job["text"]."]";
+			}
+		}else{
+			$jobs=[];
 		}
 		$res=[ "nodes" => $jobs , "links" => $edges];
 		return $res;
@@ -560,13 +642,13 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 				die('{"errorcode":0, "data": '.json_encode($this->showWorkZoneByName($wzName)).'}');
 
 			}
-			if ($action==5){ //request Job data
+			if ($action==5){ //request Job schema
 
 				if (!isset($post['jobID']) ){
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
 				$jobID = $post['jobID'];
-				die('{"errorcode":0, "data": { "schema" : '.json_encode($this->getJobData($jobID)).', "startval" : {} }}');
+				die('{"errorcode":0, "data": { "content" : '.json_encode($this->getJobSchema($jobID)).', "startval" : {} }}');
 
 			}
 			if ($action==6){ //store user entry
@@ -581,7 +663,7 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 				if (!isset($post['jobID'])) {
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
-				die('{"errorcode":0, "data": '.json_encode($this->getUserEntry($post['jobID'])).'}');
+				die('{"errorcode":0, "data": '.json_encode($this->getJobValues($post['jobID'])).'}');
 			}
 			if ($action==8){ //request Predecessor status list
 				if (!isset($post['jobID']) ){

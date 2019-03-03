@@ -16,6 +16,8 @@ The required preccessor jobs
 The Title
 <code json foo.txt>
 "title": "Final",
+"duration": 20,
+"isMileStone": true,
 "schema": 
 </code>
 

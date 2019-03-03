@@ -60,13 +60,33 @@ function openEditor(jobID) {
 	// read the precessor table
 	loadPredecessorStates(jobID);
 	postIt("JobsHandler.php", { action: 5, jobID: jobID }, function (response) {
-		console.log(response.schema);
+		console.log(response);
+		if (response.content.schema) {
+
+		} else {
+			return;
+		}
 		actualEditJobID = jobID;
 		if (jsonEditor) {
 			jsonEditor.destroy();
 		}
+		if (response.content.isMileStone) {
+			jobTimer.isMileStone = response.content.ismilestone;
+		}
+		if (response.content.duration) {
+			jobTimer.duration = response.content.duration;
+		}
+		if (response.content.endDate) {
+			jobTimer.endDate = response.content.enddate;
+		}
+		if (response.content.owner) {
+			jobTimer.owner = response.content.owner;
+		}
+		if (response.content.notmine) {
+			jobTimer.notMine = response.content.notmine;
+		}
 		jsonEditor = new JSONEditor(document.getElementById('editJob'), {
-			schema: response.schema,
+			schema: response.content.schema,
 			disable_collapse: true,
 			disable_edit_json: true,
 			disable_properties: true
@@ -77,9 +97,32 @@ function openEditor(jobID) {
 			$("#submitJsonEditor").prop("disabled", false);
 		});
 		postIt("JobsHandler.php", { action: 7, jobID: jobID }, function (response) {
+			switchElementVisibility(true);
+			if (response) {
+				if (response.isMileStone) {
+					jobTimer.isMileStone = response.isMileStone;
+					delete response.isMileStone;
+				}
+				if (response.duration) {
+					jobTimer.duration = response.duration;
+					delete response.duration;
+				}
+				if (response.endDate) {
+					jobTimer.endDate = response.enddate;
+					delete response.enddate;
+				}
+				if (response.owner) {
+					jobTimer.owner = response.owner;
+					delete response.owner;
+				}
+				if (response.notmine) {
+					jobTimer.notMine = response.notmine;
+					delete response.notmine;
+				}
+			}
 			jsonEditor.setValue(response);
+			$("#submitJsonEditor").prop("disabled", true);
 		});
-		switchElementVisibility(true);
 	});
 }
 
@@ -98,7 +141,6 @@ function switchElementVisibility(visible) {
 
 function showWorkZoneByName(wzName) {
 	postIt("JobsHandler.php", { action: 4, wzName: wzName }, function (response) {
-		//alert("häh?");
 		myDiagram.model = new go.GraphLinksModel(response["nodes"], response["links"]);
 		if (jsonEditor) {
 			jsonEditor.destroy();
@@ -189,6 +231,32 @@ $(function () {
 				$("#datepicker").datepicker({
 					showWeek: true,
 					firstDay: 1
+				});
+				$("#submitJsonEditor").click(function () {
+					var editorValues = jsonEditor.getValue();
+					var validated=validateEditor(editorValues);
+					// add values, which are not part of the Editor schema
+					editorValues.isMileStone = jobTimer.isMileStone ? 1 : 0;
+					editorValues.duration = jobTimer.duration;
+					editorValues.endDate = jobTimer.endDate;
+
+					var res = {
+						"action": 6,
+						"input":
+						{
+							"jobID": actualEditJobID,
+							"predecessorState": 0,
+							"validated": validated ? 1 : 0,
+							"content": editorValues,
+							"state": validated ? 1 : 2
+						}
+					}
+					console.log(editorValues);
+					postIt("JobsHandler.php", res, function (response) {
+						console.log("values saved on server");
+						showWorkZoneByName(actualWorkzoneName);
+					});
+
 				});
 			}
 		},
@@ -307,39 +375,8 @@ $(function () {
 		});
 	});
 
-	/*
-	$("#datepicker").datepicker({
-		showWeek: true,
-		firstDay: 1
-	});
-	
 
-	datepicker.datepicker({
-		showWeek: true,
-		firstDay: 1
-	});
-*/
 
-	$("#submitJsonEditor").click(function () {
-		var values = jsonEditor.getValue();
-		var res = {
-			"action": 6,
-			"input":
-			{
-				"jobID": actualEditJobID,
-				"predecessorState": 0,
-				"validated": validateEditor(values) ? 1 : 0,
-				"content": values,
-				"state": validateEditor(values) ? 1 : 2
-			}
-		}
-		console.log(values);
-		postIt("JobsHandler.php", res, function (response) {
-			console.log("values saved on server");
-			showWorkZoneByName(actualWorkzoneName);
-		});
-
-	});
 
 
 
