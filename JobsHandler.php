@@ -94,7 +94,7 @@ class JobsHandler  {
 				"content" => $content,
 				"validated" => 0,
 				"startdate" => time(),
-				"enddate" => time(),
+				"enddate" => time()+1000*3600*24*$json->duration,
 				"duration" => $json->duration,
 				"ismilestone" => $json->isMileStone ? 1 : 0 ,
 				"state" => 0

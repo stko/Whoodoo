@@ -81,6 +81,8 @@
 			</table>
 		</div>
 		<div id="jobTimer" v-if="visible">
+			<input type="checkbox" id="isMileStone" v-model="isMileStone">
+			<label for="isMileStone">is Milestone</label>
 			<template v-if="isMileStone">
 				<label for="datepicker">Due Date:</label>
 				<input v-model="endDate" type="text" id="datepicker">

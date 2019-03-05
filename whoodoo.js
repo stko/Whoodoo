@@ -70,21 +70,6 @@ function openEditor(jobID) {
 		if (jsonEditor) {
 			jsonEditor.destroy();
 		}
-		if (response.content.isMileStone) {
-			jobTimer.isMileStone = response.content.ismilestone;
-		}
-		if (response.content.duration) {
-			jobTimer.duration = response.content.duration;
-		}
-		if (response.content.endDate) {
-			jobTimer.endDate = response.content.enddate;
-		}
-		if (response.content.owner) {
-			jobTimer.owner = response.content.owner;
-		}
-		if (response.content.notmine) {
-			jobTimer.notMine = response.content.notmine;
-		}
 		jsonEditor = new JSONEditor(document.getElementById('editJob'), {
 			schema: response.content.schema,
 			disable_collapse: true,
@@ -108,8 +93,8 @@ function openEditor(jobID) {
 					delete response.duration;
 				}
 				if (response.endDate) {
-					jobTimer.endDate = response.enddate;
-					delete response.enddate;
+					jobTimer.endDate = response.endDate;
+					delete response.endDate;
 				}
 				if (response.owner) {
 					jobTimer.owner = response.owner;
