@@ -84,27 +84,32 @@ function openEditor(jobID) {
 		postIt("JobsHandler.php", { action: 7, jobID: jobID }, function (response) {
 			switchElementVisibility(true);
 			if (response) {
-				if (response.isMileStone) {
+				if ('isMileStone' in response) {
 					jobTimer.isMileStone = response.isMileStone;
 					delete response.isMileStone;
 				}
-				if (response.duration) {
+				if ('duration' in response) {
 					jobTimer.duration = response.duration;
 					delete response.duration;
 				}
-				if (response.endDate) {
+				if ('endDate' in response) {
 					jobTimer.endDate = response.endDate;
 					delete response.endDate;
 				}
-				if (response.owner) {
+				if ('owner' in response) {
 					jobTimer.owner = response.owner;
 					delete response.owner;
 				}
-				if (response.notmine) {
+				if ('notmine' in response) {
 					jobTimer.notMine = response.notmine;
 					delete response.notmine;
 				}
+				if ('jobName' in response) {
+					jobTimer.jobName = response.jobName;
+					delete response.jobName;
+				}
 			}
+			jobTimer.workzoneName=actualWorkzoneName;
 			jsonEditor.setValue(response);
 			$("#submitJsonEditor").prop("disabled", true);
 		});
@@ -216,6 +221,16 @@ $(function () {
 				$("#datepicker").datepicker({
 					showWeek: true,
 					firstDay: 1
+				}).change(function () {
+					$("#submitJsonEditor").prop("disabled", false);
+				});
+				$("#duration").change(function () {
+					$("#submitJsonEditor").prop("disabled", false);
+				});
+				$("#takeOver").click(function () {
+					postIt("JobsHandler.php", { action: 11,  jobID: actualEditJobID }, function (response) {
+						openEditor(actualEditJobID);
+					});
 				});
 				$("#submitJsonEditor").click(function () {
 					var editorValues = jsonEditor.getValue();
@@ -251,7 +266,9 @@ $(function () {
 			endDate: new Date().toDateString(),
 			visible: true,
 			owner: "Klaus Mustermann",
-			notMine: true
+			notMine: true,
+			jobName:"",
+			workzoneName:""
 		},
 		mounted: function () {
 			this.$nextTick(function () {
@@ -359,6 +376,7 @@ $(function () {
 			gotoWorkZoneByName(response.workzonename, response);
 		});
 	});
+	
 
 
 

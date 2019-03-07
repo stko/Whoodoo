@@ -18,121 +18,133 @@
 </head>
 
 <body>
+	<div class=".ui-widget">
+		<div class=".ui-widget-header">
+			header<span style="float: right;">
+				header
+			</span>
+		</div>
+		<div id="tabs" class=".ui-widget-content">
+			<ul>
+				<li><a href="#tabs-1">Overwiew</a></li>
+				<li><a href="#tabs-2">Proin dolor</a></li>
+				<li><a href="#tabs-3">Aenean lacinia</a></li>
+			</ul>
+			<!-- Tab 1-->
+			<div id="tabs-1">
+				<!-- Search Area-->
+				<div id="searchWZ">
+					<label for="workzoneList">Work Zone</label>
+					<input class=".ui-widget" id="workzoneInput">
+					<button class=".ui-button" class=".ui-widget" type="button" id="showWorkZone">Search</button>
+					<span style="float: right;">
+						<label for="jobInput">New Job Flow</label>
+						<input class=".ui-widget" id="jobInput">
+						<button class=".ui-widget" type="button" id="createFlowButton" disabled="disabled">Create new
+							Flow</button>
+					</span>
+					<br>
+					<div id="wzOverview">
+						<template v-if="workZoneTable.length>0">
+							Workzones matching your Search:
+							<table>
+								<tr v-for="row in workZoneTable">
+									<td><a
+											v-bind:href=" 'javascript:showWorkZoneByName(\u0022' + row.name + '\u0022);' ">{{ row.name }}</a>
+									</td>
+									<td>{{ row.count }}</td>
+								</tr>
+							</table>
+						</template>
+						<template v-if="workzoneName!=''">
+							<hr />
+							Actual Work Zone: {{workzoneName}}
+						</template>
+					</div>
 
-	<div id="tabs">
-		<ul>
-			<li><a href="#tabs-1">Overwiew</a></li>
-			<li><a href="#tabs-2">Proin dolor</a></li>
-			<li><a href="#tabs-3">Aenean lacinia</a></li>
-		</ul>
-		<!-- Tab 1-->
-		<div id="tabs-1">
-			<!-- Search Area-->
-			<div id="searchWZ">
-				<label for="workzoneList">Work Zone</label>
-				<input id="workzoneInput">
-				<button type="button" id="showWorkZone">Search</button>
-				<span style="float: right;">
-					<label for="jobInput">New Job Flow</label>
-					<input id="jobInput">
-					<button type="button" id="createFlowButton" disabled="disabled">Create new Flow</button>
-				</span>
-				<br>
-				<div id="wzOverview">
-					<template v-if="workZoneTable.length>0">
-						Workzones matching your Search:
-						<table>
-							<tr v-for="row in workZoneTable">
-								<td><a
-										v-bind:href=" 'javascript:showWorkZoneByName(\u0022' + row.name + '\u0022);' ">{{ row.name }}</a>
-								</td>
-								<td>{{ row.count }}</td>
-							</tr>
-						</table>
-					</template>
-					<template v-if="workzoneName!=''">
-						<hr />
-						Actual Work Zone: {{workzoneName}}
-					</template>
-				</div>
-
-				<div id="Diagram">
+					<div id="Diagram">
 
 
-					<!-- The DIV for the Diagram needs an explicit size or else we won't see anything.
+						<!-- The DIV for the Diagram needs an explicit size or else we won't see anything.
        Also add a border to help see the edges. -->
-					<div id="myDiagramDiv" style="border: solid 1px black; width:100%; height:400px"></div>
+						<div id="myDiagramDiv" style="border: solid 1px black; width:100%; height:400px"></div>
+					</div>
 				</div>
 			</div>
-		</div>
-		<div id="jobPredecessorState" v-if="visible">
-			<table>
-				<tr v-for="row in jobPredecessorStates">
-					<td>{{ row.id }}</td>
-					<td v-bind:bgcolor="row.color">{{ row.jobname }}</td>
-					<td v-bind:bgcolor="row.color">{{ row.title }}</td>
-					<td><button
-							v-bind:onclick="'ignorePredecessorJob(' + row.id + ',\u0022' + row.jobname + '\u0022);' ">{{ ignoreButtonText(row.state)}}
-					</td>
-					<td><button v-bind:onclick="'acceptPredecessor(' + row.id + ',\u0022' + row.jobname + '\u0022);' "
-							v-if="showAcceptButton(row.state)">Accept</button></td>
-					<td>{{ row.state }}</td>
-				</tr>
-			</table>
-		</div>
-		<div id="jobTimer" v-if="visible">
-			<input type="checkbox" id="isMileStone" v-model="isMileStone">
-			<label for="isMileStone">is Milestone</label>
-			<template v-if="isMileStone">
-				<label for="datepicker">Due Date:</label>
-				<input v-model="endDate" type="text" id="datepicker">
-			</template>
-			<template v-else>
+			<div id="jobPredecessorState" v-if="visible">
+				<table>
+					<tr v-for="row in jobPredecessorStates">
+						<td>{{ row.id }}</td>
+						<td v-bind:bgcolor="row.color">{{ row.jobname }}</td>
+						<td v-bind:bgcolor="row.color">{{ row.title }}</td>
+						<td><button class=".ui-widget"
+								v-bind:onclick="'ignorePredecessorJob(' + row.id + ',\u0022' + row.jobname + '\u0022);' ">{{ ignoreButtonText(row.state)}}
+						</td>
+						<td><button class=".ui-widget"
+								v-bind:onclick="'acceptPredecessor(' + row.id + ',\u0022' + row.jobname + '\u0022);' "
+								v-if="showAcceptButton(row.state)">Accept</button></td>
+						<td>{{ row.state }}</td>
+					</tr>
+				</table>
+			</div>
+			<div id="jobTimer" v-if="visible">
+				<h3>Editing "{{jobName}}" in {{workzoneName}}:</h3>
 				<label for="duration">Est. Duration:</label>
-				<input id="duration" v-model="duration" type="number" min="1" max="500"
+				<input class=".ui-widget" id="duration" v-model="duration" type="number" min="1" max="500"
 					placeholder="Estimated Job duration in Days">
-			</template>
-			<span style="float: right;">
-				Actual Owner: {{owner}}
-				<button v-if="notMine" id='takeOver'>Take over Ownership</button>
-			</span>
-		</div>
-		<div id="editJob">
-		</div>
-		<div id="bottomeditdiv" v-if="visible">
-			<button id='cancelJsonEditor'>Cancel</button>
-			<span style="float: right;">
-				<label for="commitMsg">Commit Message:</label>
-				<input id="commitMsg">
-				<button id='submitJsonEditor' disabled="disabled">Submit (console.log)</button>
-			</span>
-		</div>
-		<div id="tabs-2">
-			bla
-		</div>
-		<div id="tabs-3">
-			<p>Mauris eleifend est et turpis. Duis id erat. Suspendisse potenti. Aliquam vulputate, pede vel vehicula
-				accumsan, mi neque rutrum erat, eu congue orci lorem eget lorem. Vestibulum non ante. Class aptent
-				taciti
-				sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Fusce sodales. Quisque eu urna
-				vel enim
-				commodo pellentesque. Praesent eu risus hendrerit ligula tempus pretium. Curabitur lorem enim, pretium
-				nec,
-				feugiat nec, luctus a, lacus.</p>
-			<p>Duis cursus. Maecenas ligula eros, blandit nec, pharetra at, semper at, magna. Nullam ac lacus. Nulla
-				facilisi.
-				Praesent viverra justo vitae neque. Praesent blandit adipiscing velit. Suspendisse potenti. Donec
-				mattis, pede
-				vel pharetra blandit, magna ligula faucibus eros, id euismod lacus dolor eget odio. Nam scelerisque.
-				Donec non
-				libero sed nulla mattis commodo. Ut sagittis. Donec nisi lectus, feugiat porttitor, tempor ac, tempor
-				vitae,
-				pede. Aenean vehicula velit eu tellus interdum rutrum. Maecenas commodo. Pellentesque nec elit. Fusce in
-				lacus.
-				Vivamus a libero vitae lectus hendrerit hendrerit.</p>
+				<label for="isMileStone">is Milestone?</label>
+				<input class=".ui-widget" type="checkbox" id="isMileStone" v-model="isMileStone">
+				<template v-if="isMileStone">
+					<label for="datepicker">Due Date:</label>
+					<input class=".ui-widget" v-model="endDate" type="text" id="datepicker">
+				</template>
+
+				<span style="float: right;">
+					Actual Owner: {{owner}}
+					<button class=".ui-widget" v-if="notMine" id='takeOver'>Take over Ownership</button>
+				</span>
+			</div>
+			<div id="editJob">
+			</div>
+			<div id="bottomeditdiv" v-if="visible">
+				<button class=".ui-widget" id='cancelJsonEditor'>Cancel</button>
+				<span style="float: right;">
+					<label for="commitMsg">Commit Message:</label>
+					<input class=".ui-widget" id="commitMsg">
+					<button class=".ui-widget" id='submitJsonEditor' disabled="disabled">Commit Changes</button>
+				</span>
+			</div>
+			<div id="tabs-2">
+				bla
+			</div>
+			<div id="tabs-3">
+				<p>Mauris eleifend est et turpis. Duis id erat. Suspendisse potenti. Aliquam vulputate, pede vel
+					vehicula
+					accumsan, mi neque rutrum erat, eu congue orci lorem eget lorem. Vestibulum non ante. Class aptent
+					taciti
+					sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Fusce sodales. Quisque eu
+					urna
+					vel enim
+					commodo pellentesque. Praesent eu risus hendrerit ligula tempus pretium. Curabitur lorem enim,
+					pretium
+					nec,
+					feugiat nec, luctus a, lacus.</p>
+				<p>Duis cursus. Maecenas ligula eros, blandit nec, pharetra at, semper at, magna. Nullam ac lacus. Nulla
+					facilisi.
+					Praesent viverra justo vitae neque. Praesent blandit adipiscing velit. Suspendisse potenti. Donec
+					mattis, pede
+					vel pharetra blandit, magna ligula faucibus eros, id euismod lacus dolor eget odio. Nam scelerisque.
+					Donec non
+					libero sed nulla mattis commodo. Ut sagittis. Donec nisi lectus, feugiat porttitor, tempor ac,
+					tempor
+					vitae,
+					pede. Aenean vehicula velit eu tellus interdum rutrum. Maecenas commodo. Pellentesque nec elit.
+					Fusce in
+					lacus.
+					Vivamus a libero vitae lectus hendrerit hendrerit.</p>
+			</div>
 		</div>
 	</div>
-
 
 </body>
 

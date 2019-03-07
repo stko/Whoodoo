@@ -265,30 +265,61 @@ class JobsHandler  {
 		return $data;
 	}
 	
+	public function writeChangeLog($jobID,$text){
+		global $actualUser;
+		$pdoStatement=$this->db->insert("changelog", [
+			"jobid" => $jobID,
+			"timestamp" => time(),
+			"changetype" => 1,
+			"userid" => $actualUser["id"],
+			"jobowner" => $actualUser["id"],
+			"predecessorState" => 0,
+			"validated" => 0,
+			"content" => $text,
+			"state" => 0
+		]);
+		error_log("Wrote Changelog on $jobID with $text");
+
+	}
 	
 	public function getJobValues($jobID){
 		global $actualUser;
-		$data = $this->db->get("changelog", [
-			"content"
+
+		$jobValues = $this->db->get("changelog", [
+			"[>]joblist" => ["jobid" => "id"]
+		],
+		[
+			"joblist.title",
+			"changelog.content"
 		], [
 			"jobid" => $jobID,
 			"changetype" => 0,
 			"ORDER" => ["timestamp" => "DESC"],
 		]);
+		$jobTitle= $this->db->get("joblist", [
+			"title"
+		], [
+			"id" => $jobID
+		]);
 		ob_start();
-		var_dump($data);
+		var_dump($jobValues);
 		$result = ob_get_clean();
 		error_log($result);
-
-		$userInfo=$this->getJobOwnerInfo($jobID);
-		$res=json_decode($data["content"]);
-		if ($userInfo!==FALSE){
-			$res->owner=$userInfo["firstname"]." ".$userInfo["lastname"];
-			$res->notmine=$userInfo["id"]==$actualUser["id"];
-		}else{
-			$res->owner=$actualUser["name"];
-			$res->notmine=false;
+		if ($jobValues!=NULL){
+			$userInfo=$this->getJobOwnerInfo($jobID);
+			$res=json_decode($jobValues["content"]);
+			if ($userInfo!==FALSE){
+				$res->jobName=$jobTitle["title"];
+				$res->owner=$userInfo["firstname"]." ".$userInfo["lastname"];
+				$res->notmine=$userInfo["id"]!=$actualUser["id"];
+				return $res;
+			}
 		}
+		$res=[
+			"owner"=>"Nobody",
+			"jobName"=>$jobTitle["title"],
+			"notmine"=>true
+		];
 		return $res;
 	}
 	
@@ -359,6 +390,38 @@ class JobsHandler  {
 		return $res;
 	}
 	
+	public function takeoverOwnership($jobID){
+		global $actualUser;
+		error_log("try to take ownership on $jobID ");
+		$data = $this->db->get("changelog", [
+			"id"
+		], [
+			"jobid" => $jobID,
+			"changetype" => 0,
+			"ORDER" => ["timestamp" => "DESC"],
+		]);
+		$this->writeChangeLog($jobID,"Took Ownership");
+		$edges = $this->db->update("joblist", [
+			"ownerid" => $actualUser=["id"]
+		],
+		[
+			"id[=]" => $jobID
+		]);
+		if ($data===FALSE){
+			return true;
+		}
+		$edges = $this->db->update("changelog", [
+			"jobowner" => $actualUser=["id"]
+		],
+		[
+			"id[=]" => $data["id"]
+		]);
+		return true;
+	}
+	
+	
+
+
 	/*
 	INSERT INTO whoodoo_statecodes VALUES(1,'Requested',"Gainsboro","#DCDCDC",0);
 INSERT INTO whoodoo_statecodes VALUES(2,'Done',"Lime","#00FF00",1);
@@ -591,8 +654,12 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 		error_log($result);
 		$action = $post['action'];
 		if ($action) {
-			$wzName = strtolower($post['wzName']);
-			$jobName = $post['jobName'];
+			if (isset($post['wzName'])){
+				$wzName = strtolower($post['wzName']);
+			}
+			if (isset($post['jobName'])){
+				$jobName =$post['jobName'];
+			}
 			if ($action==1){ //ok to create?
 				if (!isset($wzName) || !isset($jobName)){
 					die('{"errorcode":1, "error": "Variable Error"}');
@@ -687,6 +754,14 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 				}
 				$edgeID = $post['edgeID'];
 				die('{"errorcode":0, "data": '.json_encode($this->acceptPredecessor($edgeID)).'}');
+
+			}
+			if ($action==11){ //take over ownership
+				if (!isset($post['jobID']) ){
+					die('{"errorcode":1, "error": "Variable Error"}');
+				}
+				$jobID = $post['jobID'];
+				die('{"errorcode":0, "data": '.json_encode($this->takeoverOwnership($jobID)).'}');
 
 			}
 			
