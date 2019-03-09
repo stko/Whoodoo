@@ -93,7 +93,7 @@
 						<div>
 							<template v-if="row.history.values">
 								<h4>Values</h4>
-								<table>
+								<table style="width: 100%">
 									<tr>
 										<th>Field</th>
 										<th>Value</th>
@@ -103,7 +103,12 @@
 									</tr>
 									<tr v-for="logentry in row.history.values">
 										<td>{{logentry.name}}</td>
-										<td>{{formatURL(logentry.value)}}</td>
+										<template v-if="checkIfURL(logentry.value)">
+											<td><a target="_blank" v-bind:href="logentry.value">Direct Link</a></td>
+										</template>
+										<template v-else>
+											<td>{{logentry.value}}</td>
+										</template>
 										<td>{{logentry.user}}</td>
 										<td>{{logentry.timestamp}}</td>
 										<td>{{logentry.comment}}</td>
@@ -112,7 +117,7 @@
 							</template>
 							<template v-if="row.history.comments.length > 0">
 								<h4>History</h4>
-								<table>
+								<table style="width: 100%">
 									<tr>
 										<th>comment</th>
 										<th>by</th>
