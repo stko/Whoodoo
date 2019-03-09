@@ -231,6 +231,7 @@ $(function () {
 				$("#duration").change(function () {
 					$("#submitJsonEditor").prop("disabled", false);
 				});
+				$('#accordion' ).accordion();
 				$("#takeOver").click(function () {
 					postIt("JobsHandler.php", { action: 11,  jobID: actualEditJobID }, function (response) {
 						openEditor(actualEditJobID);
@@ -356,7 +357,6 @@ $(function () {
 		enableCreateButton();
 		gotoWorkZoneByName($('#workzoneInput').val());
 	});
-
 	$('#jobInput').autocomplete({
 		source: function (request, response) {
 			postIt("JobTemplates.php", { action: 1, query: request.term }, function (answer) {

@@ -5,7 +5,8 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Whoodoo - Who's doing it?</title>
-	<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+	<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+	<link rel="stylesheet" href="https://jqueryui.com/resources/demos/style.css">
 	<link rel="stylesheet" href="whoodoo.css">
 	<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
 	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
@@ -18,13 +19,13 @@
 </head>
 
 <body>
-	<div class=".ui-widget">
-		<div class=".ui-widget-header">
+	<div class="ui-widget">
+		<div class="ui-widget-header">
 			header<span style="float: right;">
 				header
 			</span>
 		</div>
-		<div id="tabs" class=".ui-widget-content">
+		<div id="tabs" class="ui-widget-content">
 			<ul>
 				<li><a href="#tabs-1">Overwiew</a></li>
 				<li><a href="#tabs-2">Proin dolor</a></li>
@@ -35,12 +36,12 @@
 				<!-- Search Area-->
 				<div id="searchWZ">
 					<label for="workzoneList">Work Zone</label>
-					<input class=".ui-widget" id="workzoneInput">
-					<button class=".ui-button" class=".ui-widget" type="button" id="showWorkZone">Search</button>
+					<input class="ui-widget ui-corner-all" id="workzoneInput">
+					<button class="ui-button ui-widget ui-corner-all" type="button" id="showWorkZone">Search</button>
 					<span style="float: right;">
 						<label for="jobInput">New Job Flow</label>
-						<input class=".ui-widget" id="jobInput">
-						<button class=".ui-widget" type="button" id="createFlowButton" disabled="disabled">Create new
+						<input class="ui-widget ui-corner-all" id="jobInput">
+						<button class="ui-button ui-widget ui-corner-all" type="button" id="createFlowButton" disabled="disabled">Create new
 							Flow</button>
 					</span>
 					<br>
@@ -72,46 +73,58 @@
 				</div>
 			</div>
 			<div id="jobPredecessorState" v-if="visible">
-				<table>
-					<tr v-for="row in jobPredecessorStates">
-						<td>{{ row.id }}</td>
-						<td v-bind:bgcolor="row.color">{{ row.jobname }}</td>
-						<td v-bind:bgcolor="row.color">{{ row.title }}</td>
-						<td><button class=".ui-widget"
+				<div id="accordion">
+					<template v-for="row in jobPredecessorStates">
+						<h3>
+							<!--span v-bind:bgcolor="row.color"-->
+								<!--{{ row.id }}-->
+								{{ row.jobname }}
+								{{ row.title }}
+							<!--/span>-->
+							<button class="ui-button ui-widget ui-corner-all"
 								v-bind:onclick="'ignorePredecessorJob(' + row.id + ',\u0022' + row.jobname + '\u0022);' ">{{ ignoreButtonText(row.state)}}
-						</td>
-						<td><button class=".ui-widget"
-								v-bind:onclick="'acceptPredecessor(' + row.id + ',\u0022' + row.jobname + '\u0022);' "
-								v-if="showAcceptButton(row.state)">Accept</button></td>
-						<td>{{ row.state }}</td>
-					</tr>
-				</table>
+								<button class="ui-button ui-widget ui-corner-all"
+									v-bind:onclick="'acceptPredecessor(' + row.id + ',\u0022' + row.jobname + '\u0022);' "
+									v-if="showAcceptButton(row.state)">Accept</button>
+								{{ row.state }}
+
+						</h3>
+						<div>
+							<p>
+								Mauris mauris ante, blandit et, ultrices a, suscipit eget, quam. Integer
+								ut neque. Vivamus nisi metus, molestie vel, gravida in, condimentum sit
+								amet, nunc. Nam a nibh. Donec suscipit eros. Nam mi. Proin viverra leo ut
+								odio. Curabitur malesuada. Vestibulum a velit eu ante scelerisque vulputate.
+							</p>
+						</div>
+					</template>
+				</div>
 			</div>
 			<div id="jobTimer" v-if="visible">
 				<h3>Editing "{{jobName}}" in {{workzoneName}}:</h3>
 				<label for="duration">Est. Duration:</label>
-				<input class=".ui-widget" id="duration" v-model="duration" type="number" min="1" max="500"
+				<input class="ui-widget ui-corner-all" id="duration" v-model="duration" type="number" min="1" max="500"
 					placeholder="Estimated Job duration in Days">
 				<label for="isMileStone">is Milestone?</label>
-				<input class=".ui-widget" type="checkbox" id="isMileStone" v-model="isMileStone">
+				<input class="ui-widget ui-corner-all" type="checkbox" id="isMileStone" v-model="isMileStone">
 				<template v-if="isMileStone">
 					<label for="datepicker">Due Date:</label>
-					<input class=".ui-widget" v-model="endDate" type="text" id="datepicker">
+					<input class="ui-widget ui-corner-all" v-model="endDate" type="text" id="datepicker">
 				</template>
 
 				<span style="float: right;">
 					Actual Owner: {{owner}}
-					<button class=".ui-widget" v-if="notMine" id='takeOver'>Take over Ownership</button>
+					<button class="ui-button ui-widget ui-corner-all" v-if="notMine" id='takeOver'>Take over Ownership</button>
 				</span>
 			</div>
 			<div id="editJob">
 			</div>
 			<div id="bottomeditdiv" v-if="visible">
-				<button class=".ui-widget" id='cancelJsonEditor'>Cancel</button>
+				<button class="ui-button ui-widget ui-corner-all" id='cancelJsonEditor'>Cancel</button>
 				<span style="float: right;">
 					<label for="commitMsg">Commit Message:</label>
-					<input class=".ui-widget" id="commitMsg">
-					<button class=".ui-widget" id='submitJsonEditor' disabled="disabled">Commit Changes</button>
+					<input class="ui-widget ui-corner-all" id="commitMsg">
+					<button class="ui-button ui-widget ui-corner-all" id='submitJsonEditor' disabled="disabled">Commit Changes</button>
 				</span>
 			</div>
 			<div id="tabs-2">
@@ -120,20 +133,25 @@
 			<div id="tabs-3">
 				<p>Mauris eleifend est et turpis. Duis id erat. Suspendisse potenti. Aliquam vulputate, pede vel
 					vehicula
-					accumsan, mi neque rutrum erat, eu congue orci lorem eget lorem. Vestibulum non ante. Class aptent
+					accumsan, mi neque rutrum erat, eu congue orci lorem eget lorem. Vestibulum non ante. Class
+					aptent
 					taciti
-					sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Fusce sodales. Quisque eu
+					sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Fusce sodales. Quisque
+					eu
 					urna
 					vel enim
 					commodo pellentesque. Praesent eu risus hendrerit ligula tempus pretium. Curabitur lorem enim,
 					pretium
 					nec,
 					feugiat nec, luctus a, lacus.</p>
-				<p>Duis cursus. Maecenas ligula eros, blandit nec, pharetra at, semper at, magna. Nullam ac lacus. Nulla
+				<p>Duis cursus. Maecenas ligula eros, blandit nec, pharetra at, semper at, magna. Nullam ac lacus.
+					Nulla
 					facilisi.
-					Praesent viverra justo vitae neque. Praesent blandit adipiscing velit. Suspendisse potenti. Donec
+					Praesent viverra justo vitae neque. Praesent blandit adipiscing velit. Suspendisse potenti.
+					Donec
 					mattis, pede
-					vel pharetra blandit, magna ligula faucibus eros, id euismod lacus dolor eget odio. Nam scelerisque.
+					vel pharetra blandit, magna ligula faucibus eros, id euismod lacus dolor eget odio. Nam
+					scelerisque.
 					Donec non
 					libero sed nulla mattis commodo. Ut sagittis. Donec nisi lectus, feugiat porttitor, tempor ac,
 					tempor
