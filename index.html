@@ -41,7 +41,8 @@
 					<span style="float: right;">
 						<label for="jobInput">New Job Flow</label>
 						<input class="ui-widget ui-corner-all" id="jobInput">
-						<button class="ui-button ui-widget ui-corner-all" type="button" id="createFlowButton" disabled="disabled">Create new
+						<button class="ui-button ui-widget ui-corner-all" type="button" id="createFlowButton"
+							disabled="disabled">Create new
 							Flow</button>
 					</span>
 					<br>
@@ -74,12 +75,12 @@
 			</div>
 			<div id="jobPredecessorState" v-if="visible">
 				<div id="accordion">
-					<template v-for="row in jobPredecessorStates">
+					<template v-for="row in jobPredecessorStates.jobPredecessorStateTable">
 						<h3>
 							<!--span v-bind:bgcolor="row.color"-->
-								<!--{{ row.id }}-->
-								{{ row.jobname }}
-								{{ row.title }}
+							<!--{{ row.id }}-->
+							{{ row.jobname }}
+							{{ row.title }}
 							<!--/span>-->
 							<button class="ui-button ui-widget ui-corner-all"
 								v-bind:onclick="'ignorePredecessorJob(' + row.id + ',\u0022' + row.jobname + '\u0022);' ">{{ ignoreButtonText(row.state)}}
@@ -90,12 +91,40 @@
 
 						</h3>
 						<div>
-							<p>
-								Mauris mauris ante, blandit et, ultrices a, suscipit eget, quam. Integer
-								ut neque. Vivamus nisi metus, molestie vel, gravida in, condimentum sit
-								amet, nunc. Nam a nibh. Donec suscipit eros. Nam mi. Proin viverra leo ut
-								odio. Curabitur malesuada. Vestibulum a velit eu ante scelerisque vulputate.
-							</p>
+							<template v-if="row.history.values">
+								<h4>Values</h4>
+								<table>
+									<tr>
+										<th>Field</th>
+										<th>Value</th>
+										<th>given by</th>
+										<th>at</th>
+										<th>comment</th>
+									</tr>
+									<tr v-for="logentry in row.history.values">
+										<td>{{logentry.name}}</td>
+										<td>{{formatURL(logentry.value)}}</td>
+										<td>{{logentry.user}}</td>
+										<td>{{logentry.timestamp}}</td>
+										<td>{{logentry.comment}}</td>
+									</tr>
+								</table>
+							</template>
+							<template v-if="row.history.comments.length > 0">
+								<h4>History</h4>
+								<table>
+									<tr>
+										<th>comment</th>
+										<th>by</th>
+										<th>at</th>
+									</tr>
+									<tr v-for="logentry in row.history.comments">
+										<td>{{logentry.comment}}</td>
+										<td>{{logentry.user}}</td>
+										<td>{{logentry.timestamp}}</td>
+									</tr>
+								</table>
+							</template>
 						</div>
 					</template>
 				</div>
@@ -114,7 +143,8 @@
 
 				<span style="float: right;">
 					Actual Owner: {{owner}}
-					<button class="ui-button ui-widget ui-corner-all" v-if="notMine" id='takeOver'>Take over Ownership</button>
+					<button class="ui-button ui-widget ui-corner-all" v-if="notMine" id='takeOver'>Take over
+						Ownership</button>
 				</span>
 			</div>
 			<div id="editJob">
@@ -124,7 +154,8 @@
 				<span style="float: right;">
 					<label for="commitMsg">Commit Message:</label>
 					<input class="ui-widget ui-corner-all" id="commitMsg">
-					<button class="ui-button ui-widget ui-corner-all" id='submitJsonEditor' disabled="disabled">Commit Changes</button>
+					<button class="ui-button ui-widget ui-corner-all" id='submitJsonEditor' disabled="disabled">Commit
+						Changes</button>
 				</span>
 			</div>
 			<div id="tabs-2">

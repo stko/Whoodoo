@@ -373,7 +373,63 @@ class JobsHandler  {
 		return $res;
 	}
 	
-	
+	public function getJobHistory($jobID){
+		$changelog = $this->db->select("changelog", [
+			"[>]users" => ["jobowner" => "id"]
+		],[
+			"users.firstname",
+			"users.lastname",
+			"changelog.jobid",
+			"changelog.timestamp",
+			"changelog.changetype",
+			"changelog.userid",
+			"changelog.jobowner",
+			"changelog.predecessorState",
+			"changelog.validated",
+			"changelog.comment",
+			"changelog.content",
+			"changelog.state"
+		],
+		[
+			"jobid[=]" => $jobID,
+			"ORDER" => ["timestamp" => "ASC"],
+		]);
+		$history=["comments"=>[], "values"=>[]];
+		foreach ($changelog as $change){
+			array_push($history["comments"], [
+				"user"=>$change["firstname"]." ".$change["lastname"],
+				"userid"=>$change["userid"],
+				"comment"=>$change["comment"],
+				"timestamp"=>date("r",$change["timestamp"])
+			]);
+			if ($change["changetype"]==0) {
+				$json=json_decode($change["content"]);
+				foreach ($json as $name => $value) {
+					error_log("name:".$name." Value:".$value);
+					if(strpos(strtolower($name),"date")!==false){
+						$value=date("m/d/Y",$value);
+					}
+					if(!isset($istory["values"][$name]) || $history["values"][$name]["value"]!=$value ){
+						$history["values"][$name]=[
+							"user"=>$change["firstname"]." ".$change["lastname"],
+							"userid"=>$change["userid"],
+							"comment"=>$change["comment"],
+							"name"=>$name,
+							"timestamp"=>date("m/d/Y H:i:s",$change["timestamp"]),
+							"value"=>$value
+						];
+					}
+				}
+			}
+		}
+		ob_start();
+		var_dump($history);
+		$result = ob_get_clean();
+		error_log($result);
+		return $history;
+	}
+
+
 	public function getJobPredecessorStates($jobID){
 		$edges = $this->db->select("edgelist", [
 			"[>]statecodes" => "state",
@@ -382,6 +438,7 @@ class JobsHandler  {
 		],
 		[
 			"edgelist.id",
+			"edgelist.fromjobid(jobid)",
 			"jobnames.name(jobname)",
 			"joblist.title",
 			"joblist.state(jobstate)",
@@ -391,7 +448,9 @@ class JobsHandler  {
 		[
 			"tojobid[=]" => $jobID
 		]);
-
+		foreach ($edges as $key =>$edge) {
+			$edges[$key]["history"]=$this->getJobHistory($edge["jobid"]);
+		}
 		$res=[ "jobPredecessorStateTable" => $edges];
 		return $res;
 	}

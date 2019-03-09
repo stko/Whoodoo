@@ -50,8 +50,8 @@ function validateEditor(values) {
 function loadPredecessorStates(jobID) {
 	// read the precessor table
 	postIt("JobsHandler.php", { action: 8, jobID: jobID }, function (response) {
-		console.log(response.schema);
-		jobPredecessorState.jobPredecessorStates = response.jobPredecessorStateTable;
+		console.log(response);
+		jobPredecessorState.jobPredecessorStates = response;
 
 	});
 }
@@ -93,8 +93,8 @@ function openEditor(jobID) {
 					delete response.duration;
 				}
 				if ('endDate' in response) {
-					var d = new Date(response.endDate*1000);
-					jobTimer.endDate = (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
+					var d = new Date(response.endDate * 1000);
+					jobTimer.endDate = (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear();
 					delete response.endDate;
 				}
 				if ('startDate' in response) {
@@ -113,7 +113,7 @@ function openEditor(jobID) {
 					delete response.jobName;
 				}
 			}
-			jobTimer.workzoneName=actualWorkzoneName;
+			jobTimer.workzoneName = actualWorkzoneName;
 			jsonEditor.setValue(response);
 			$("#submitJsonEditor").prop("disabled", true);
 		});
@@ -231,19 +231,19 @@ $(function () {
 				$("#duration").change(function () {
 					$("#submitJsonEditor").prop("disabled", false);
 				});
-				$('#accordion' ).accordion();
+				$('#accordion').accordion();
 				$("#takeOver").click(function () {
-					postIt("JobsHandler.php", { action: 11,  jobID: actualEditJobID }, function (response) {
+					postIt("JobsHandler.php", { action: 11, jobID: actualEditJobID }, function (response) {
 						openEditor(actualEditJobID);
 					});
 				});
 				$("#submitJsonEditor").click(function () {
 					var editorValues = jsonEditor.getValue();
-					var validated=validateEditor(editorValues);
+					var validated = validateEditor(editorValues);
 					// add values, which are not part of the Editor schema
 					editorValues.isMileStone = jobTimer.isMileStone ? 1 : 0;
 					editorValues.duration = jobTimer.duration;
-					editorValues.endDate = Math.round(new Date(jobTimer.endDate).getTime()/1000);
+					editorValues.endDate = Math.round(new Date(jobTimer.endDate).getTime() / 1000);
 
 					var res = {
 						"action": 6,
@@ -273,8 +273,8 @@ $(function () {
 			visible: true,
 			owner: "Klaus Mustermann",
 			notMine: true,
-			jobName:"",
-			workzoneName:""
+			jobName: "",
+			workzoneName: ""
 		},
 		mounted: function () {
 			this.$nextTick(function () {
@@ -323,7 +323,11 @@ $(function () {
 					default:
 						return false;
 				}
+			},
+			formatURL: function (value) {
+				return "URL:" + value;
 			}
+
 		}
 	});
 
@@ -381,7 +385,7 @@ $(function () {
 			gotoWorkZoneByName(response.workzonename, response);
 		});
 	});
-	
+
 
 
 
