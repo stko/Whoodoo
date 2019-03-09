@@ -94,7 +94,7 @@ class JobsHandler  {
 				"content" => $content,
 				"validated" => 0,
 				"startdate" => time(),
-				"enddate" => time()+1000*3600*24*$json->duration,
+				"enddate" => time()+3600*24*$json->duration,
 				"duration" => $json->duration,
 				"ismilestone" => $json->isMileStone ? 1 : 0 ,
 				"state" => 0
@@ -103,21 +103,6 @@ class JobsHandler  {
 			var_dump($data);
 			$result = ob_get_clean();
 			error_log($result);
-/*
-			$this->db->insert("joblist", [
-				"workzoneid" => $wzID,
-				"jobnameid" => $jobID,
-				"userid" => $actualUser["id"],
-				"title" => $title,
-				"content" => $content,
-				"validated" => 0,
-				"startdate" => time(),
-				"enddate" => time(),
-				"duration" => $json->duration,
-				"ismilestone" => $json->isMileStone ? 1 : 0 ,
-				"state" => 0
-			]);
-*/
 			$this->db->insert("joblist", $data);
 			return $this->db->id();
 		}else{
@@ -147,10 +132,11 @@ class JobsHandler  {
 		}
 	}
 
-	public function storeUserEntry($data,$userID){
+	public function setJobValues($data,$userID){
 		if (!isset($data["jobID"]) 
 		or !isset($data["predecessorState"])
 		or !isset($data["validated"])
+		or !isset($data["comment"])
 		or !isset($data["content"])
 		or !isset($data["state"])
 		){
@@ -190,12 +176,21 @@ class JobsHandler  {
 			$values = $this->db->update("joblist", [
 					"state" => $newState
 				], [
-				"workzoneid[=]" => $wzID,
 				"id[=]" => $data["jobID"]
 			]);
 
 		}
-		
+
+		$values = $this->db->update("joblist", [
+			"startdate" => $data["endDate"]-$data["duration"]*24*3600,
+			"enddate" => $data["endDate"],
+			"duration" => $data["duration"],
+			"ismilestone" => $data["isMileStone"] ? 1 : 0 
+			], [
+			"id[=]" => $data["jobID"]
+		]);
+
+	
 		$userInfo=$this->getJobOwnerInfo($data["jobID"]);
 		if ($userInfo!=NULL) {
 			$owner=$userInfo["id"];
@@ -218,6 +213,7 @@ class JobsHandler  {
 			"jobowner" => $owner,
 			"predecessorState" => $data["predecessorState"],
 			"validated" => $data["validated"],
+			"comment" => json_encode($data["comment"]),
 			"content" => json_encode($data["content"]),
 			"state" => $data["state"]
 		]);
@@ -265,17 +261,18 @@ class JobsHandler  {
 		return $data;
 	}
 	
-	public function writeChangeLog($jobID,$text){
+	public function writeChangeLog($jobID,$text,$jobOwner){
 		global $actualUser;
 		$pdoStatement=$this->db->insert("changelog", [
 			"jobid" => $jobID,
 			"timestamp" => time(),
 			"changetype" => 1,
 			"userid" => $actualUser["id"],
-			"jobowner" => $actualUser["id"],
+			"jobowner" => $jobOwner,
 			"predecessorState" => 0,
 			"validated" => 0,
-			"content" => $text,
+			"comment" => $text,
+			"content" => "{}",
 			"state" => 0
 		]);
 		error_log("Wrote Changelog on $jobID with $text");
@@ -297,10 +294,16 @@ class JobsHandler  {
 			"ORDER" => ["timestamp" => "DESC"],
 		]);
 		$jobTitle= $this->db->get("joblist", [
-			"title"
+			"title",
+			"startdate",
+			"enddate",
+			"ismilestone"
 		], [
 			"id" => $jobID
 		]);
+
+
+
 		ob_start();
 		var_dump($jobValues);
 		$result = ob_get_clean();
@@ -310,6 +313,9 @@ class JobsHandler  {
 			$res=json_decode($jobValues["content"]);
 			if ($userInfo!==FALSE){
 				$res->jobName=$jobTitle["title"];
+				$res->startDate=$jobTitle["startdate"];
+				$res->endDate=$jobTitle["enddate"];
+				$res->isMileStone=$jobTitle["ismilestone"]== 1 ? true : false ;
 				$res->owner=$userInfo["firstname"]." ".$userInfo["lastname"];
 				$res->notmine=$userInfo["id"]!=$actualUser["id"];
 				return $res;
@@ -393,28 +399,12 @@ class JobsHandler  {
 	public function takeoverOwnership($jobID){
 		global $actualUser;
 		error_log("try to take ownership on $jobID ");
-		$data = $this->db->get("changelog", [
-			"id"
-		], [
-			"jobid" => $jobID,
-			"changetype" => 0,
-			"ORDER" => ["timestamp" => "DESC"],
-		]);
-		$this->writeChangeLog($jobID,"Took Ownership");
+		$this->writeChangeLog($jobID,"Took Ownership",$actualUser["id"]);
 		$edges = $this->db->update("joblist", [
 			"ownerid" => $actualUser=["id"]
 		],
 		[
 			"id[=]" => $jobID
-		]);
-		if ($data===FALSE){
-			return true;
-		}
-		$edges = $this->db->update("changelog", [
-			"jobowner" => $actualUser=["id"]
-		],
-		[
-			"id[=]" => $data["id"]
 		]);
 		return true;
 	}
@@ -718,15 +708,15 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 				die('{"errorcode":0, "data": { "content" : '.json_encode($this->getJobSchema($jobID)).', "startval" : {} }}');
 
 			}
-			if ($action==6){ //store user entry
+			if ($action==6){ //store Job Values
 				if (!isset($post['input'])) {
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
-				$this->storeUserEntry($post['input'],1);
+				$this->setJobValues($post['input'],1);
 				die('{"errorcode":0, "data": true}');
 
 			}
-			if ($action==7){ //get user entry
+			if ($action==7){ //get Job Values
 				if (!isset($post['jobID'])) {
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}

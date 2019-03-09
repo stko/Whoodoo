@@ -93,8 +93,12 @@ function openEditor(jobID) {
 					delete response.duration;
 				}
 				if ('endDate' in response) {
-					jobTimer.endDate = response.endDate;
+					var d = new Date(response.endDate*1000);
+					jobTimer.endDate = (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
 					delete response.endDate;
+				}
+				if ('startDate' in response) {
+					delete response.startDate;
 				}
 				if ('owner' in response) {
 					jobTimer.owner = response.owner;
@@ -238,7 +242,7 @@ $(function () {
 					// add values, which are not part of the Editor schema
 					editorValues.isMileStone = jobTimer.isMileStone ? 1 : 0;
 					editorValues.duration = jobTimer.duration;
-					editorValues.endDate = jobTimer.endDate;
+					editorValues.endDate = Math.round(new Date(jobTimer.endDate).getTime()/1000);
 
 					var res = {
 						"action": 6,
@@ -247,6 +251,7 @@ $(function () {
 							"jobID": actualEditJobID,
 							"predecessorState": 0,
 							"validated": validated ? 1 : 0,
+							"comment": $("#commitMsg").val(),
 							"content": editorValues,
 							"state": validated ? 1 : 2
 						}

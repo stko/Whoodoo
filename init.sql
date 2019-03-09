@@ -45,6 +45,7 @@ CREATE TABLE whoodoo_changelog (
 			predecessorState INTEGER NOT NULL,
 			validated INTEGER NOT NULL,
 			changetype INTEGER NOT NULL,
+			comment TEXT,
 			content TEXT,
 			state INTEGER NOT NULL);
 CREATE TABLE whoodoo_statecodes (
