@@ -231,7 +231,6 @@ $(function () {
 				$("#duration").change(function () {
 					$("#submitJsonEditor").prop("disabled", false);
 				});
-				$('#accordion').accordion();
 				$("#takeOver").click(function () {
 					postIt("JobsHandler.php", { action: 11, jobID: actualEditJobID }, function (response) {
 						openEditor(actualEditJobID);
@@ -299,6 +298,12 @@ $(function () {
 			visible: true
 		},
 		methods: {
+			setJQuery: function () {
+				$('#accordion').accordion({
+					//collapsible: true
+				});
+				console.log("Accordion triggered");
+			},
 			// a computed getter
 			ignoreButtonText: function (state) {
 				// `this` points to the vm instance
@@ -326,14 +331,29 @@ $(function () {
 			},
 			checkIfURL: function (value) {
 				//https://stackoverflow.com/a/5717133
-				var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
-				'((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
-				'((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
-				'(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
-				'(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
-				'(\\#[-a-z\\d_]*)?$','i'); // fragment locator
-			  return !!pattern.test(value);
+				var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
+					'((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // domain name
+					'((\\d{1,3}\\.){3}\\d{1,3}))' + // OR ip (v4) address
+					'(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+					'(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+					'(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
+				return !!pattern.test(value);
 			}
+
+		},
+		mounted: function () {
+			this.$nextTick(function () {
+				// Code that will run only after the
+				// entire view has been rendered
+				this.setJQuery();
+			})
+		},
+		updated: function () {
+			this.$nextTick(function () {
+				// Code that will run only after the
+				// entire view has been rendered
+				this.setJQuery();
+			})
 		}
 	});
 

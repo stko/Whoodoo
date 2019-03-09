@@ -46,34 +46,39 @@
 							Flow</button>
 					</span>
 					<br>
-					<div id="wzOverview">
-						<template v-if="workZoneTable.length>0">
-							Workzones matching your Search:
-							<table>
-								<tr v-for="row in workZoneTable">
-									<td><a
-											v-bind:href=" 'javascript:showWorkZoneByName(\u0022' + row.name + '\u0022);' ">{{ row.name }}</a>
-									</td>
-									<td>{{ row.count }}</td>
-								</tr>
-							</table>
-						</template>
+					<div id="wzOverview" class="ui-section" v-if="workZoneTable.length>0">
+						<!-- <template v-if="workZoneTable.length>0"> -->
+						<h3>Workzones matching your Search:</h3>
+						<table class="blueTable">
+							<tr>
+								<th>Workzone</th>
+								<th>Open Jobs</th>
+							</tr>
+							<tr v-for="row in workZoneTable">
+								<td><a
+										v-bind:href=" 'javascript:showWorkZoneByName(\u0022' + row.name + '\u0022);' ">{{ row.name }}</a>
+								</td>
+								<td>{{ row.count }}</td>
+							</tr>
+						</table>
+						<!-- </template> -->
 						<template v-if="workzoneName!=''">
 							<hr />
 							<h3>Actual Work Zone: {{workzoneName}}</h3>
 						</template>
 					</div>
 
-					<div id="Diagram">
+					<div id="Diagram" class="ui-section">
 
 
 						<!-- The DIV for the Diagram needs an explicit size or else we won't see anything.
        Also add a border to help see the edges. -->
-						<div id="myDiagramDiv" style="border: solid 1px black; width:100%; height:400px"></div>
+						<div id="myDiagramDiv" style="width:100%; height:400px"></div>
 					</div>
 				</div>
 			</div>
-			<div id="jobPredecessorState" v-if="visible">
+			<div id="jobPredecessorState" v-if="visible" class="ui-section">
+				<h3>Job Predecessors:</h3>
 				<div id="accordion">
 					<template v-for="row in jobPredecessorStates.jobPredecessorStateTable">
 						<h3>
@@ -134,6 +139,7 @@
 					</template>
 				</div>
 			</div>
+			<div class="ui-section">
 			<div id="jobTimer" v-if="visible">
 				<h3>Editing "{{jobName}}" in {{workzoneName}}:</h3>
 				<label for="duration">Est. Duration:</label>
@@ -163,6 +169,7 @@
 						Changes</button>
 				</span>
 			</div>
+		</div>
 			<div id="tabs-2">
 				bla
 			</div>
