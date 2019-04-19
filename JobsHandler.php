@@ -102,7 +102,6 @@ class JobsHandler  {
 			ob_start();
 			var_dump($data);
 			$result = ob_get_clean();
-			error_log($result);
 			$this->db->insert("joblist", $data);
 			return $this->db->id();
 		}else{
@@ -155,7 +154,6 @@ class JobsHandler  {
 		if ($data["validated"]){
 			$newState=1;
 		}
-		error_log("old state is ".$oldState." new State is ".$newState);
 		if (($oldState==$newState and $oldState==1) or $oldState!=$newState){
 			if ($oldState==1){// was finished, but isn't anymore
 				if ($oldState==$newState){ //it's an update, which triggers a rework
@@ -182,10 +180,10 @@ class JobsHandler  {
 		}
 
 		$values = $this->db->update("joblist", [
-			"startdate" => $data["endDate"]-$data["duration"]*24*3600,
-			"enddate" => $data["endDate"],
-			"duration" => $data["duration"],
-			"ismilestone" => $data["isMileStone"] ? 1 : 0 
+			"startdate" => $data["content"]["endDate"]-$data["content"]["duration"]*24*3600,
+			"enddate" => $data["content"]["endDate"],
+			"duration" => $data["content"]["duration"],
+			"ismilestone" => $data["content"]["isMileStone"] ? 1 : 0 
 			], [
 			"id[=]" => $data["jobID"]
 		]);
@@ -194,14 +192,11 @@ class JobsHandler  {
 		$userInfo=$this->getJobOwnerInfo($data["jobID"]);
 		if ($userInfo!=NULL) {
 			$owner=$userInfo["id"];
-			error_log("Owner info".$owner);
 			ob_start();
 			var_dump($userInfo);
 			$result = ob_get_clean();
-			error_log($result);
 		} else {
 			$owner=$userID; 
-			error_log("KEINE Owner info".$owner);
 		}
 		
 
@@ -217,12 +212,6 @@ class JobsHandler  {
 			"content" => json_encode($data["content"]),
 			"state" => $data["state"]
 		]);
-		ob_start();
-		var_dump($pdoStatement->errorInfo());
-		$result = ob_get_clean();
-		error_log($result);
-
-
 	}
 
 	
@@ -301,13 +290,6 @@ class JobsHandler  {
 		], [
 			"id" => $jobID
 		]);
-
-
-
-		ob_start();
-		var_dump($jobValues);
-		$result = ob_get_clean();
-		error_log($result);
 		if ($jobValues!=NULL){
 			$userInfo=$this->getJobOwnerInfo($jobID);
 			$res=json_decode($jobValues["content"]);
@@ -405,11 +387,10 @@ class JobsHandler  {
 			if ($change["changetype"]==0) {
 				$json=json_decode($change["content"]);
 				foreach ($json as $name => $value) {
-					error_log("name:".$name." Value:".$value);
 					if(strpos(strtolower($name),"date")!==false){
 						$value=date("m/d/Y",$value);
 					}
-					if(!isset($istory["values"][$name]) || $history["values"][$name]["value"]!=$value ){
+					if(!isset($history["values"][$name]) || $history["values"][$name]["value"]!=$value ){
 						$history["values"][$name]=[
 							"user"=>$change["firstname"]." ".$change["lastname"],
 							"userid"=>$change["userid"],
@@ -422,10 +403,6 @@ class JobsHandler  {
 				}
 			}
 		}
-		ob_start();
-		var_dump($history);
-		$result = ob_get_clean();
-		error_log($result);
 		return $history;
 	}
 
@@ -457,7 +434,6 @@ class JobsHandler  {
 	
 	public function takeoverOwnership($jobID){
 		global $actualUser;
-		error_log("try to take ownership on $jobID ");
 		$this->writeChangeLog($jobID,"Took Ownership",$actualUser["id"]);
 		$edges = $this->db->update("joblist", [
 			"ownerid" => $actualUser=["id"]
@@ -568,6 +544,7 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 				}
 			}
 			if ($oldJobState!=$newJobState){
+				error_log("job ".$jobID." changes from state ".$oldJobState." to ".$newJobState);
 				$model["jobs"][$jobID]["state"]=$newJobState;
 				$model["jobs"][$jobID]["new"]=true;
 				$affectedJobs=[];
@@ -576,7 +553,8 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 						$oldEgdeState=$edge["state"];
 						$newEgdeState=$this->calculateNewJobState($oldEgdeState,$newJobState);
 						if ($oldEgdeState!=$newEgdeState){
-							if (in_array($edge["fromjobid"],$affectedJobs)){
+							error_log("edge  ".$id." changes from state ".$oldEgdeState." to ".$newEgdeState);
+							if (! in_array($edge["fromjobid"],$affectedJobs)){
 								$affectedJobs[]=$edge["fromjobid"];
 							}
 							$model["edges"][$id]["state"]=$newEgdeState;
@@ -585,6 +563,9 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 					}
 				}
 				$this->updateJobTree($model,$affectedJobs);
+			}else{
+				error_log("job ".$jobID." does not change from state ".$oldJobState." to ".$newJobState);
+
 			}
 		}
 	}
@@ -622,9 +603,9 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 		var_dump($model);
 		$result = ob_get_clean();
 		error_log($result);
-		foreach($model["jobs"] as $jobID){
-			if (isset($model["jobs"][$jobID]["new"])){
-				error_log("job ".$jobID." state changed to ".$model["jobs"][$jobID]["state"]);
+		foreach($model["jobs"] as $key=>$jobID){
+			if (isset($model["jobs"][$key]["new"])){
+				error_log("job ".$key." state changed to ".$model["jobs"][$key]["state"]);
 			}
 		}
 		foreach($model["edges"] as $edgeID => $edge){
