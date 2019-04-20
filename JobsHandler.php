@@ -570,11 +570,80 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 		}
 	}
 
+	public function printJobsOnly($model,$jobID,$jobDescends){
+		foreach ($jobDescends as $levelID => $subLevelJobID){
+			error_log("job:".$model["jobs"][$jobID]["title"]. " has decent ".$model["jobs"][$levelID]["title"]);
+		}
+	}
+
+	public function iterateThroughDependency(&$model , $dependency, $functionToCall){
+		foreach ($dependency as $levelID => $level){
+			error_log("iterateThroughDependency level:".$levelID);
+			foreach ($level as $jobID => $jobDescends){
+				$functionToCall($model,$jobID,$jobDescends);
+			}
+		}
+	}
+
+	public function calculateModelData(&$model){
+		// building a array containing the different dependency levels
+		$stepUpArray=[];
+		$actLevel=0;
+		$stepUpArray[$actLevel]=[];
+		// at first we fill level 0 with all jobs which do not have a predecessors, so the starting jobs
+		foreach($model["jobs"] as $jobID => $job){
+			if (count($job["preJobs"])==0){
+				$stepUpArray[$actLevel][$jobID]=$job["sucJobs"]; # by this $jobID => $job trick we make sure that each jobID is stored only once
+			}
+		}
+		error_log("start Jobs are calculated");
+		# now we repeat this with the jobs found, until there's no more precessor found
+		$moreJobsFound=true;
+		while($moreJobsFound){
+			$moreJobsFound=false;
+			$actLevel++;
+			$stepUpArray[$actLevel]=[];
+			foreach($stepUpArray[$actLevel-1] as $jobID => $jobSuccessors){
+				error_log("job gefunden: ".$jobID." in Level ".$actLevel);
+
+				if (count($jobSuccessors)>0){
+					$moreJobsFound=true;
+					foreach($jobSuccessors as $nextJobID =>$nextJob){
+
+						ob_start();
+						var_dump($nextJobID);
+						var_dump($nextJob);
+						$result = ob_get_clean();
+						error_log($result);
+				
+
+						$stepUpArray[$actLevel][$nextJobID]=$model["jobs"][$nextJobID]["sucJobs"]; # by this $jobID => $job trick we make sure that each jobID is stored only once
+					}
+				}
+			}
+			if (!$moreJobsFound){
+				unset($stepUpArray[$actLevel]);
+			}
+		}
+		error_log("start of calculateModelData dump");
+		ob_start();
+		var_dump($stepUpArray);
+		$result = ob_get_clean();
+		error_log($result);
+		error_log("end of calculateModelData dump");
+
+
+		$this->iterateThroughDependency($model , $stepUpArray, array($this, 'printJobsOnly'));
+
+
+	}
+
 	
 	public function updateModelState($workzoneid,$newStateJob){
 		$jobs = $this->db->select("joblist", 
 			[
 				"joblist.id",
+				"joblist.title",
 				"joblist.state"
 			],
 			[
@@ -594,11 +663,25 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 		);
 		$sortedJobs=[];
 		foreach($jobs as $job){//sort by index for better processing
-			$sortedJobs[$job["id"]]=[];
-			$sortedJobs[$job["id"]]["state"]=$job["state"];
+			$jobID=$job["id"];
+			$sortedJobs[$jobID]=[];
+			$sortedJobs[$jobID]["state"]=$job["state"];
+			$sortedJobs[$jobID]["title"]=$job["title"];
+			$sortedJobs[$jobID]["preJobs"]=[];
+			$sortedJobs[$jobID]["sucJobs"]=[];
+			foreach ($edges as $edgeID => $edge){
+				if ($edge["fromjobid"]==$jobID){
+					$sortedJobs[$jobID]["sucJobs"][$edge["tojobid"]]=["jobid" => $edge["tojobid"], "edge"=> $edgeID];
+				}
+				if ($edge["tojobid"]==$jobID){
+					$sortedJobs[$jobID]["preJobs"][$edge["fromjobid"]]=["jobid" => $edge["fromjobid"], "edge"=> $edgeID];
+				}
+			}
 		}
+		error_log("anywhere in updateModelState");
 		$model=[ "jobs" => $sortedJobs , "edges" => $edges];
 		$this->updateJobTree($model,[$newStateJob]);
+		$this->calculateModelData($model);
 		ob_start();
 		var_dump($model);
 		$result = ob_get_clean();
@@ -691,6 +774,7 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 				$jobName =$post['jobName'];
 			}
 			if ($action==1){ //ok to create?
+				error_log("Ok to create Workzone?");
 				if (!isset($wzName) || !isset($jobName)){
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
@@ -703,6 +787,7 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 				die('{"errorcode":0, "data": true}');
 			}
 			if ($action==2){ //create
+				error_log("Create Workzone");
 				if (!isset($wzName) || !isset($jobName)){
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
@@ -726,13 +811,15 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 				die('{"errorcode":0, "data": { "workzoneid" :'.$wzID.', "workzonename": "'.$wzName.'" } }');
 			}
 			if ($action==3){ //request Work Zone overview
+				error_log("request Work Zone overview");
 				if (!isset($wzName) ){
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
 				die('{"errorcode":0, "data": '.json_encode(array_values($this->getWorkZoneOverview($wzName))).'}');
 
 			}
-			if ($action==4){ //request Work Zone overview
+			if ($action==4){ //show Work Zone by Name
+				error_log("show Work Zone by Name");
 				if (!isset($wzName) ){
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
@@ -740,7 +827,7 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 
 			}
 			if ($action==5){ //request Job schema
-
+				error_log("request Job schema");
 				if (!isset($post['jobID']) ){
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
@@ -749,6 +836,7 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 
 			}
 			if ($action==6){ //store Job Values
+				error_log("store Job Values");
 				if (!isset($post['input'])) {
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
@@ -757,12 +845,14 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 
 			}
 			if ($action==7){ //get Job Values
+				error_log("get Job Values");
 				if (!isset($post['jobID'])) {
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
 				die('{"errorcode":0, "data": '.json_encode($this->getJobValues($post['jobID'])).'}');
 			}
 			if ($action==8){ //request Predecessor status list
+				error_log("request Predecessor status list");
 				if (!isset($post['jobID']) ){
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
@@ -771,6 +861,7 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 
 			}
 			if ($action==9){ //toggle ignore Predecessor job
+				error_log("toggle ignore Predecessor job");
 				if (!isset($post['edgeID']) ){
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
@@ -779,6 +870,7 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 			}
 			
 			if ($action==10){ //Accept Predecessor job
+				error_log("Accept Predecessor job");
 				if (!isset($post['edgeID']) ){
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
@@ -787,6 +879,7 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 
 			}
 			if ($action==11){ //take over ownership
+				error_log("take over ownership");
 				if (!isset($post['jobID']) ){
 					die('{"errorcode":1, "error": "Variable Error"}');
 				}
