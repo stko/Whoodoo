@@ -95,6 +95,8 @@ class JobsHandler  {
 				"validated" => 0,
 				"startdate" => time(),
 				"enddate" => time()+3600*24*$json->duration,
+				"plannedenddate" => time()+3600*24*$json->duration,
+				"fulfillrate" => 0,
 				"duration" => $json->duration,
 				"ismilestone" => $json->isMileStone ? 1 : 0 ,
 				"state" => 0
@@ -181,8 +183,10 @@ class JobsHandler  {
 
 		$values = $this->db->update("joblist", [
 			"startdate" => $data["content"]["endDate"]-$data["content"]["duration"]*24*3600,
-			"enddate" => $data["content"]["endDate"],
+			//"enddate" => $data["content"]["endDate"],
+			"plannedenddate" => $data["content"]["endDate"],
 			"duration" => $data["content"]["duration"],
+			"fulfillrate" => $data["content"]["fulfillrate"],
 			"ismilestone" => $data["content"]["isMileStone"] ? 1 : 0 
 			], [
 			"id[=]" => $data["jobID"]
@@ -286,6 +290,7 @@ class JobsHandler  {
 			"title",
 			"startdate",
 			"enddate",
+			"plannedenddate",
 			"ismilestone"
 		], [
 			"id" => $jobID
@@ -296,7 +301,8 @@ class JobsHandler  {
 			if ($userInfo!==FALSE){
 				$res->jobName=$jobTitle["title"];
 				$res->startDate=$jobTitle["startdate"];
-				$res->endDate=$jobTitle["enddate"];
+				//$res->endDate=$jobTitle["enddate"];
+				$res->endDate=$jobTitle["plannedenddate"];
 				$res->isMileStone=$jobTitle["ismilestone"]== 1 ? true : false ;
 				$res->owner=$userInfo["firstname"]." ".$userInfo["lastname"];
 				$res->notmine=$userInfo["id"]!=$actualUser["id"];
@@ -406,6 +412,22 @@ class JobsHandler  {
 		return $history;
 	}
 
+	public function getStateNames($thisState){
+		global $stateNameTable;
+		if (!isset($stateNameTable)){
+			$stateNameTable=[];
+			$states = $this->db->select("statecodes", [
+				"state",
+				"statename"
+			],
+			[
+			]);
+			foreach ($states as $key =>$state) {
+				$stateNameTable[$state["state"]]=$state["statename"];
+			}
+		}
+		return $stateNameTable[$thisState]."(".$thisState.")";
+	}
 
 	public function getJobPredecessorStates($jobID){
 		$edges = $this->db->select("edgelist", [
@@ -570,10 +592,75 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 		}
 	}
 
-	public function printJobsOnly($model,$jobID,$jobDescends){
-		foreach ($jobDescends as $levelID => $subLevelJobID){
-			error_log("job:".$model["jobs"][$jobID]["title"]. " has decent ".$model["jobs"][$levelID]["title"]);
+	public function dumpModel($model){
+		foreach ($model["jobs"] as $jobID => $job){
+			error_log("--------");
+			error_log("id             :".$job["id"]);
+			error_log("title          :".$job["title"]);
+			error_log("state          :".$this->getStateNames($job["state"]));
+			error_log("startdate      :".date("m.d.Y H:i:s",$job["startdate"]));
+			error_log("enddate        :".date("m.d.Y H:i:s",$job["enddate"]));
+			error_log("plannedenddate :".date("m.d.Y H:i:s",$job["plannedenddate"]));
+			error_log("duration       :".$job["duration"]);
+			error_log("fulfillrate    :".$job["fulfillrate"]);
+			error_log("ismilestone    :".$job["ismilestone"]);
 		}
+	}
+
+	public function printJobsOnly(&$model,$jobID,$jobDescends){
+		foreach ($jobDescends as $subLevelJobID => $subLevelJob){
+			error_log("job:".$model["jobs"][$jobID]["title"]. " has decent ".$model["jobs"][$subLevelJobID]["title"]);
+		}
+	}
+
+	public function calculateJobEndDates(&$model,$jobID,$jobDescends){
+		$thisJob=$model["jobs"][$jobID];
+		if ($thisJob["state"]==1){//job finished, no calculation needed
+			return;
+		}
+		// find the latest end date of the descants
+		$date=time();
+		foreach ($jobDescends as $subLevelJobID => $subLevelJob){
+			$desValue=$model["jobs"][$subLevelJobID]["enddate"];
+			if ($desValue>$date){
+				$date=$desValue;
+			}
+		}
+		$newEndTime=$date+3600*24*$thisJob["duration"]*(100-$thisJob["fulfillrate"]);
+		//does this change the job?
+		if ($thisJob["enddate"]!=$date){
+			$model["jobs"][$jobID]["enddate"]=$date;
+			$model["jobs"][$jobID]["new"]=true;
+		}
+
+	}
+
+	public function calculateJobIgnores(&$model,$jobID,$jobDescends){
+		$thisJob=$model["jobs"][$jobID];
+		if ($thisJob["state"]==1){//job finished, no calculation needed
+			return;
+		}
+		// go through the edges
+		$isIgnored=true;
+		foreach ($jobDescends as $subLevelJobID => $subLevelJob){
+			$thisEdgeID=$subLevelJob["edge"];
+			$thisEdgeState=$model["edges"][$thisEdgeID]["state"];
+			$prevJobState=$model["jobs"][$subLevelJobID]["state"];
+			if (!($thisEdgeState== 6 || $prevJobState==6 )){ // if state = ignored
+				$isIgnored=false;
+			}
+		}
+		$newState=$thisJob["state"];
+		if ($isIgnored){
+			$newState=6;
+		}
+		error_log("New Ignore state:".$newState);
+		//does this change the job?
+		if ($thisJob["state"]!=$newState){
+			$model["state"][$jobID]["state"]=$newState;
+			$model["jobs"][$jobID]["new"]=true;
+		}
+
 	}
 
 	public function iterateThroughDependency(&$model , $dependency, $functionToCall){
@@ -596,7 +683,6 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 				$stepUpArray[$actLevel][$jobID]=$job["sucJobs"]; # by this $jobID => $job trick we make sure that each jobID is stored only once
 			}
 		}
-		error_log("start Jobs are calculated");
 		# now we repeat this with the jobs found, until there's no more precessor found
 		$moreJobsFound=true;
 		while($moreJobsFound){
@@ -604,19 +690,9 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 			$actLevel++;
 			$stepUpArray[$actLevel]=[];
 			foreach($stepUpArray[$actLevel-1] as $jobID => $jobSuccessors){
-				error_log("job gefunden: ".$jobID." in Level ".$actLevel);
-
 				if (count($jobSuccessors)>0){
 					$moreJobsFound=true;
 					foreach($jobSuccessors as $nextJobID =>$nextJob){
-
-						ob_start();
-						var_dump($nextJobID);
-						var_dump($nextJob);
-						$result = ob_get_clean();
-						error_log($result);
-				
-
 						$stepUpArray[$actLevel][$nextJobID]=$model["jobs"][$nextJobID]["sucJobs"]; # by this $jobID => $job trick we make sure that each jobID is stored only once
 					}
 				}
@@ -625,15 +701,48 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 				unset($stepUpArray[$actLevel]);
 			}
 		}
-		error_log("start of calculateModelData dump");
-		ob_start();
-		var_dump($stepUpArray);
-		$result = ob_get_clean();
-		error_log($result);
-		error_log("end of calculateModelData dump");
 
 
+		// building a array containing the different dependency levels
+		$stepDownArray=[];
+		$actLevel=0;
+		$stepDownArray[$actLevel]=[];
+		// at first we fill level 0 with all jobs which do not have a sucessor, so the ending jobs
+		foreach($model["jobs"] as $jobID => $job){
+			if (count($job["sucJobs"])==0){
+				$stepDownArray[$actLevel][$jobID]=$job["preJobs"]; # by this $jobID => $job trick we make sure that each jobID is stored only once
+			}
+		}
+		# now we repeat this with the jobs found, until there's no more successor found
+		$moreJobsFound=true;
+		while($moreJobsFound){
+			$moreJobsFound=false;
+			$actLevel++;
+			$stepDownArray[$actLevel]=[];
+			foreach($stepDownArray[$actLevel-1] as $jobID => $jobSuccessors){
+				if (count($jobSuccessors)>0){
+					$moreJobsFound=true;
+					foreach($jobSuccessors as $nextJobID =>$nextJob){
+						$stepDownArray[$actLevel][$nextJobID]=$model["jobs"][$nextJobID]["preJobs"]; # by this $jobID => $job trick we make sure that each jobID is stored only once
+					}
+				}
+			}
+			if (!$moreJobsFound){
+				unset($stepDownArray[$actLevel]);
+			}
+		}
+
+		error_log("Aufsteigende Jobs");
 		$this->iterateThroughDependency($model , $stepUpArray, array($this, 'printJobsOnly'));
+
+		error_log("absteigende Jobs");
+		$this->iterateThroughDependency($model , $stepDownArray, array($this, 'printJobsOnly'));
+
+		error_log("calculateJobEndDates");
+		$this->iterateThroughDependency($model , $stepDownArray, array($this, 'calculateJobEndDates'));
+
+		error_log("calculateJobIgnores");
+		$this->iterateThroughDependency($model , $stepDownArray, array($this, 'calculateJobIgnores'));
 
 
 	}
@@ -644,8 +753,14 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 			[
 				"joblist.id",
 				"joblist.title",
-				"joblist.state"
-			],
+				"joblist.state",
+				"joblist.startdate",
+				"joblist.enddate",
+				"joblist.plannedenddate",
+				"joblist.duration",
+				"joblist.fulfillrate",
+				"joblist.ismilestone"
+				],
 			[
 				"workzoneid" => $workzoneid
 			]
@@ -664,9 +779,19 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 		$sortedJobs=[];
 		foreach($jobs as $job){//sort by index for better processing
 			$jobID=$job["id"];
+			$sortedJobs[$jobID]=$job;
+			/*
 			$sortedJobs[$jobID]=[];
+			$sortedJobs[$jobID]["id"]=$job["id"];
 			$sortedJobs[$jobID]["state"]=$job["state"];
 			$sortedJobs[$jobID]["title"]=$job["title"];
+			$sortedJobs[$jobID]["startdate"]=$job["startdate"];
+			$sortedJobs[$jobID]["enddate"]=$job["enddate"];
+			$sortedJobs[$jobID]["plannedenddate"]=$job["plannedenddate"];
+			$sortedJobs[$jobID]["duration"]=$job["duration"];
+			$sortedJobs[$jobID]["fulfillrate"]=$job["fulfillrate"];
+			$sortedJobs[$jobID]["ismilestone"]=$job["ismilestone"];
+			*/
 			$sortedJobs[$jobID]["preJobs"]=[];
 			$sortedJobs[$jobID]["sucJobs"]=[];
 			foreach ($edges as $edgeID => $edge){
@@ -678,14 +803,13 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 				}
 			}
 		}
-		error_log("anywhere in updateModelState");
 		$model=[ "jobs" => $sortedJobs , "edges" => $edges];
 		$this->updateJobTree($model,[$newStateJob]);
 		$this->calculateModelData($model);
-		ob_start();
-		var_dump($model);
-		$result = ob_get_clean();
-		error_log($result);
+
+
+		$this->dumpModel($model);
+
 		foreach($model["jobs"] as $key=>$jobID){
 			if (isset($model["jobs"][$key]["new"])){
 				error_log("job ".$key." state changed to ".$model["jobs"][$key]["state"]);
