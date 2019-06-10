@@ -71,7 +71,7 @@ class JobsHandler  {
 	public function createJobName($job){
 		$id=$this->getJobNameID($job);
 		if ($id===false){
-			$this->db->insert("jobnames", [
+			$pdoStatement=$this->db->insert("jobnames", [
 				"name" => $job
 			]);
 			return $this->db->id();
@@ -227,7 +227,7 @@ class JobsHandler  {
 	
 	public function getWorkZoneOverview($wzName){
 		$data = $this->db->query(
-			"SELECT <workzone.name> , COUNT (<joblist.id>)  FROM <workzone> INNER JOIN  <whoodoo_joblist> ON  <workzone.id> = <joblist.workzoneid> WHERE (lower(<workzone.name>) LIKE lower( :workzonename ) ) AND <joblist.state> != :state GROUP BY <workzone.name>" , [
+			"SELECT <workzone.name> , COUNT(<joblist.id>)  FROM <workzone> INNER JOIN  <whoodoo_joblist> ON  <workzone.id> = <joblist.workzoneid> WHERE (lower(<workzone.name>) LIKE lower( :workzonename ) ) AND <joblist.state> != :state GROUP BY <workzone.name>" , [
 				":workzonename" => "%".$wzName."%",
 				":state" => 1
 			]
@@ -325,11 +325,12 @@ class JobsHandler  {
 	
 	
 	public function showWorkZoneByName($wzName){
+		ob_start();
 		$jobs = $this->db->select("joblist", [
 			"[>]workzone" => ["workzoneid" => "id"],
 			"[>]jobnames" => ["jobnameid" => "id"],
 			"[>]users" => ["ownerid" => "id"],
-			"[>]statecodes" => "state"
+			"[>]statecodes" => ["state" => "state"],
 		],
 		[
 			"joblist.id(key)",
@@ -344,6 +345,10 @@ class JobsHandler  {
 		[
 			"workzone.name[=]" => $wzName
 		]);
+		var_dump($this->db->error());
+		$result = ob_get_clean();
+		error_log("------showWorkZoneByName ".$result);
+
 		$edges = $this->db->select("edgelist", [
 			"[>]workzone" => ["workzoneid" => "id"]
 		],
@@ -483,6 +488,34 @@ INSERT INTO whoodoo_statecodes VALUES(4,'Reworked',"Gold","#FFD700",3);
 INSERT INTO whoodoo_statecodes VALUES(5,'Unclear',"Orange","#FFA500",4);
 INSERT INTO whoodoo_statecodes VALUES(6,'Faulty',"OrangeRed","	#FF4500",5);
 INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
+
+
+digraph G {
+
+node [shape=box style=filled];
+
+s0 [label="Requested (0)" color="#DCDCDC"];
+s1 [label="Done (1)"  fillcolor="#00FF00" shape="Msquare"];
+s2 [label="In Work (2)"  color="#00FFFF"];
+s3 [label="Reworked (3)"  color="#FFD700"];
+s4 [label="Unclear (4)" color="#FFA500"];
+s5 [label="Faulty (5)" color="#FF4500"];
+s6 [label="Ignore (6)"  color="#FFDEAD"];
+
+start [shape=Mdiamond];
+
+start -> s0 ;
+start -> s6 [label = "when upper task ignors"];
+s0 -> s2
+s2 -> s1
+s1 -> s5 [label = "late change"];
+s5 -> s3 [label = "set to done again"];
+
+s1 -> s4 [label = "as long Subtask is faulty"];
+
+s3 -> s1 [label = "Accepted"];
+
+}
 
 	*/
 	
@@ -727,12 +760,15 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 	public function calculateModelData(&$model){
 		// building a array containing the different dependency levels
 		$stepUpArray=[];
+		$tempStepArray=[];
 		$actLevel=0;
 		$stepUpArray[$actLevel]=[];
+		$tempStepArray[$actLevel]=[];
 		// at first we fill level 0 with all jobs which do not have a predecessors, so the starting jobs
 		foreach($model["jobs"] as $jobID => $job){
 			if (count($job["preJobs"])==0){
-				$stepUpArray[$actLevel][$jobID]=$job["sucJobs"]; # by this $jobID => $job trick we make sure that each jobID is stored only once
+				$stepUpArray[$actLevel][$jobID]=$job["preJobs"]; # by this $jobID => $job trick we make sure that each jobID is stored only once
+				$tempStepArray[$actLevel][$jobID]=$job["sucJobs"]; # by this $jobID => $job trick we make sure that each jobID is stored only once
 			}
 		}
 		# now we repeat this with the jobs found, until there's no more precessor found
@@ -741,16 +777,19 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 			$moreJobsFound=false;
 			$actLevel++;
 			$stepUpArray[$actLevel]=[];
-			foreach($stepUpArray[$actLevel-1] as $jobID => $jobSuccessors){
+			$tempStepArray[$actLevel]=[];
+			foreach($tempStepArray[$actLevel-1] as $jobID => $jobSuccessors){
 				if (count($jobSuccessors)>0){
 					$moreJobsFound=true;
 					foreach($jobSuccessors as $nextJobID =>$nextJob){
-						$stepUpArray[$actLevel][$nextJobID]=$model["jobs"][$nextJobID]["sucJobs"]; # by this $jobID => $job trick we make sure that each jobID is stored only once
+						$stepUpArray[$actLevel][$nextJobID]=$model["jobs"][$nextJobID]["preJobs"]; # by this $jobID => $job trick we make sure that each jobID is stored only once
+						$tempStepArray[$actLevel][$nextJobID]=$model["jobs"][$nextJobID]["sucJobs"]; # by this $jobID => $job trick we make sure that each jobID is stored only once
 					}
 				}
 			}
 			if (!$moreJobsFound){
 				unset($stepUpArray[$actLevel]);
+				unset($tempStepArray[$actLevel]);
 			}
 		}
 
@@ -917,7 +956,6 @@ INSERT INTO whoodoo_statecodes VALUES(7,'Ignore',"NavajoWhite","#FFDEAD",6);
 					"id[=]" => $key
 				]);
 				$arr = $data->errorInfo();
-				print_r($arr);
 			}
 		}
 		foreach($model["edges"] as $edgeID => $edge){

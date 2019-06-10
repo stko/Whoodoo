@@ -175,14 +175,18 @@ function enableCreateButton() {
 function ignorePredecessorJob(edgeID, jobName) {
 	if (confirm("Are you SURE to ignore the dependency from " + jobName + "?")) {
 		postIt("JobsHandler.php", { action: 9, edgeID: edgeID }, function (response) {
+			showWorkZoneByName(actualWorkzoneName);
 			loadPredecessorStates(actualEditJobID);
+			openEditor(actualEditJobID);
 		});
 	}
 }
 function acceptPredecessor(edgeID, jobName) {
 	if (confirm("Are you SURE to accept the latest changes from " + jobName + "?")) {
 		postIt("JobsHandler.php", { action: 10, edgeID: edgeID }, function (response) {
+			showWorkZoneByName(actualWorkzoneName);
 			loadPredecessorStates(actualEditJobID);
+			openEditor(actualEditJobID);
 		});
 	}
 }
@@ -233,6 +237,7 @@ $(function () {
 				});
 				$("#takeOver").click(function () {
 					postIt("JobsHandler.php", { action: 11, jobID: actualEditJobID }, function (response) {
+						showWorkZoneByName(actualWorkzoneName);
 						openEditor(actualEditJobID);
 					});
 				});

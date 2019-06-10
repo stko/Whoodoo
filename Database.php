@@ -28,15 +28,16 @@ class Database extends Medoo {
 		self::$databaseName = $dbName;
 		parent::__construct([
 			// required
-			'database_type' => 'sqlite',
+			'database_type' => 'mysql',
+			//'database_type' => 'sqlite',
 			'database_file' => $dbName.'.sqlite',
 			// [optional] Table prefix
-			'prefix' => $tablePrefix
-		/*,
-			'database_name' => 'name',
+			'prefix' => $tablePrefix,
+			'database_name' => 'whoodoo',
 			'server' => 'localhost',
-			'username' => 'your_username',
-			'password' => 'your_password',
+			'username' => 'whoodoo',
+			'password' => 'whoodoo',
+		/*,
 		
 			// [optional]
 			'charset' => 'utf8mb4',
